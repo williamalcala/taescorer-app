@@ -20,7 +20,7 @@ st.set_page_config(
     page_title="Taescorer", 
     page_icon="favicon.png", 
     layout="wide",
-    initial_sidebar_state="collapsed" # La barra inicia cerrada, pero ahora el botón para abrirla funcionará
+    initial_sidebar_state="collapsed" # Puede iniciar cerrado, el botón ahora SÍ funcionará
 )
 
 # --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
@@ -67,14 +67,14 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SOLUCIÓN MENU + LOGO + LIMPIEZA) ---
+# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA MENÚ) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
     /* =========================================
-       1. FONDO OSCURO FORZADO
+       1. FONDO OSCURO
        ========================================= */
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
@@ -90,39 +90,40 @@ st.markdown(f"""
     .viewerBadge_container__1QSob {{ display: none !important; }}
     
     /* =========================================
-       3. HEADER Y MENÚ HAMBURGUESA (CORREGIDO)
+       3. HEADER Y MENÚ HAMBURGUESA (CRÍTICO)
        ========================================= */
     
-    /* El header nativo transparente */
+    /* Hacemos el header transparente y "fantasma" para clics, PERO visible */
     header[data-testid="stHeader"] {{
         background: transparent !important;
+        pointer-events: none !important; /* Deja pasar los clics a lo de abajo */
         z-index: 100 !important;
-        height: 60px !important;
-        /* IMPORTANTE: Quitamos pointer-events: none para que los botones funcionen */
     }}
     
-    /* Botón del Menú (Hamburguesa/Flecha) - FORZAR VISIBILIDAD */
+    /* EL BOTÓN SALVADOR: Lo hacemos clicable y visible explícitamente */
     [data-testid="stSidebarCollapsedControl"] {{
         display: block !important;
+        pointer-events: auto !important; /* Reactivar clic SOLO en el botón */
         color: #ffffff !important;
-        background-color: rgba(31, 32, 43, 0.5) !important; /* Fondo sutil para contraste */
-        border-radius: 4px !important;
-        z-index: 999999 !important; /* Encima de todo, incluso del header personalizado */
+        background-color: rgba(31, 32, 43, 0.8) !important; /* Fondo semitransparente para que resalte */
+        border-radius: 8px !important;
+        z-index: 999999 !important; /* Por encima de todo */
         position: fixed !important;
         top: 15px !important;
         left: 15px !important;
         width: 40px !important;
         height: 40px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
     }}
     
-    /* Asegurar que el icono SVG sea blanco */
+    /* Asegurar que el icono SVG (las flechas/barras) sea blanco */
     [data-testid="stSidebarCollapsedControl"] svg, 
     [data-testid="stSidebarCollapsedControl"] i {{
         fill: white !important;
         color: white !important;
     }}
 
-    /* HEADER PERSONALIZADO (El fondo negro con tu logo) */
+    /* HEADER PERSONALIZADO (El fondo negro con tu logo centrado) */
     .custom-header {{
         position: fixed;
         top: 0;
@@ -134,7 +135,7 @@ st.markdown(f"""
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 9999; /* Menor que el botón del menú (999999) */
+        z-index: 9999; /* Debajo del botón del menú (999999) */
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }}
     
@@ -143,7 +144,7 @@ st.markdown(f"""
         object-fit: contain;
     }}
 
-    /* Empujar el contenido hacia abajo */
+    /* Empujar el contenido hacia abajo para no quedar bajo el header */
     .block-container {{ padding-top: 5rem !important; }}
 
     /* =========================================
@@ -167,7 +168,6 @@ st.markdown(f"""
         .logo-login-img {{
             width: 30% !important;
         }}
-        /* Ajuste fino para botón menú en móvil si es necesario */
         [data-testid="stSidebarCollapsedControl"] {{
             top: 10px !important;
             left: 10px !important;
@@ -175,7 +175,7 @@ st.markdown(f"""
     }}
 
     /* =========================================
-       5. SIDEBAR (BOTONES UNIDOS)
+       5. SIDEBAR (BOTONES UNIDOS - ESTILO ANTERIOR MEJORADO)
        ========================================= */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
         display: block !important;
