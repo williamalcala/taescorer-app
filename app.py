@@ -16,11 +16,12 @@ except ImportError:
     calendar = None
 
 # --- 1. CONFIGURACIÓN INICIAL ---
+# CLAVE: initial_sidebar_state="expanded" es vital para que en Desktop empiece abierto
 st.set_page_config(
     page_title="Taescorer", 
     page_icon="favicon.png", 
     layout="wide",
-    initial_sidebar_state="collapsed" # Puede iniciar cerrado, el botón ahora SÍ funcionará
+    initial_sidebar_state="expanded"
 )
 
 # --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
@@ -67,63 +68,130 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA MENÚ) ---
+# --- 4. CSS MAESTRO (SOLUCIÓN MENU FIJO DESKTOP / BOTÓN MOBILE) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
-    /* =========================================
-       1. FONDO OSCURO
-       ========================================= */
+    /* FONDO OSCURO */
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* =========================================
-       2. LIMPIEZA VISUAL
-       ========================================= */
-    footer {{ display: none !important; }}
-    #MainMenu {{ display: none !important; }}
-    .stDeployButton {{ display: none !important; }}
-    [data-testid="stDecoration"] {{ display: none !important; }}
-    [data-testid="stStatusWidget"] {{ display: none !important; }}
-    .viewerBadge_container__1QSob {{ display: none !important; }}
-    
-    /* =========================================
-       3. HEADER Y MENÚ HAMBURGUESA (CRÍTICO)
-       ========================================= */
-    
-    /* Hacemos el header transparente y "fantasma" para clics, PERO visible */
-    header[data-testid="stHeader"] {{
-        background: transparent !important;
-        pointer-events: none !important; /* Deja pasar los clics a lo de abajo */
-        z-index: 100 !important;
-    }}
-    
-    /* EL BOTÓN SALVADOR: Lo hacemos clicable y visible explícitamente */
-    [data-testid="stSidebarCollapsedControl"] {{
-        display: block !important;
-        pointer-events: auto !important; /* Reactivar clic SOLO en el botón */
-        color: #ffffff !important;
-        background-color: rgba(31, 32, 43, 0.8) !important; /* Fondo semitransparente para que resalte */
-        border-radius: 8px !important;
-        z-index: 999999 !important; /* Por encima de todo */
-        position: fixed !important;
-        top: 15px !important;
-        left: 15px !important;
-        width: 40px !important;
-        height: 40px !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-    }}
-    
-    /* Asegurar que el icono SVG (las flechas/barras) sea blanco */
-    [data-testid="stSidebarCollapsedControl"] svg, 
-    [data-testid="stSidebarCollapsedControl"] i {{
-        fill: white !important;
-        color: white !important;
+    /* ELIMINAR ELEMENTOS EXTRA DE STREAMLIT */
+    footer, #MainMenu, .stDeployButton, [data-testid="stDecoration"], [data-testid="stStatusWidget"], .viewerBadge_container__1QSob {{ 
+        display: none !important; 
     }}
 
-    /* HEADER PERSONALIZADO (El fondo negro con tu logo centrado) */
+    /* HEADER NATIVO: TRANSPARENTE PARA QUE NO TAPE NADA */
+    header[data-testid="stHeader"] {{
+        background: transparent !important;
+        pointer-events: none !important; /* Permite clickear lo que está abajo */
+        height: 0px !important;
+    }}
+
+    /* ============================================================
+       COMPORTAMIENTO ESCRITORIO (Pantallas grandes > 992px)
+       El menú debe estar SIEMPRE ABIERTO y sin Header.
+       ============================================================ */
+    @media (min-width: 992px) {{
+        /* Ocultar botón para colapsar sidebar (la X o flecha dentro del sidebar) */
+        [data-testid="stSidebar"] button[kind="header"] {{
+            display: none !important;
+        }}
+        
+        /* Ocultar el botón de hamburguesa del header (si apareciera) */
+        [data-testid="stSidebarCollapsedControl"] {{
+            display: none !important;
+        }}
+        
+        /* Ajustar el padding superior ya que no hay header visual */
+        .block-container {{
+            padding-top: 2rem !important;
+        }}
+    }}
+
+    /* ============================================================
+       COMPORTAMIENTO MÓVIL (Pantallas pequeñas < 992px)
+       Necesitamos un botón flotante para abrir el menú.
+       ============================================================ */
+    @media (max-width: 991px) {{
+        /* BOTÓN FLOTANTE HAMBURGUESA */
+        [data-testid="stSidebarCollapsedControl"] {{
+            display: block !important;
+            pointer-events: auto !important; /* Reactivar clic */
+            position: fixed !important;
+            top: 10px !important;
+            left: 10px !important;
+            z-index: 999999 !important;
+            background-color: rgba(31, 32, 43, 0.8) !important; /* Fondo oscuro semitransparente */
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            border-radius: 8px !important;
+            width: 44px !important;
+            height: 44px !important;
+            color: white !important;
+        }}
+        
+        /* Icono del botón en blanco */
+        [data-testid="stSidebarCollapsedControl"] svg {{
+            fill: white !important;
+            stroke: white !important;
+        }}
+        
+        /* Padding extra en móvil para no tapar contenido con el botón */
+        .block-container {{
+            padding-top: 4rem !important;
+        }}
+    }}
+
+    /* =========================================
+       ESTILOS VISUALES DEL SIDEBAR
+       ========================================= */
+    /* Centrar imagen */
+    section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
+        display: block !important;
+        margin: 0 auto !important;
+        width: 60% !important;
+    }}
+    
+    /* Quitar espacios entre botones */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
+    
+    /* Estilo base de botones */
+    section[data-testid="stSidebar"] button {{
+        border: none !important;
+        color: white !important;
+        font-weight: 600 !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        transition: all 0.2s !important;
+    }}
+    section[data-testid="stSidebar"] button:hover {{
+        filter: brightness(1.2) !important;
+    }}
+
+    /* Botones Específicos (Colores y formas) */
+    /* Perfil */
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
+
+    /* Bloque Central */
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 8px 8px 0 0 !important; margin-bottom: 1px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 8px 8px !important; }}
+
+    /* Salir */
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
+    
+    /* Admin */
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
+
+    div[role="radiogroup"] {{ display: none !important; }}
+
+    /* HEADER PERSONALIZADO (Solo visual, no interactivo) */
     .custom-header {{
         position: fixed;
         top: 0;
@@ -135,86 +203,10 @@ st.markdown(f"""
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 9999; /* Debajo del botón del menú (999999) */
+        z-index: 9000;
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }}
-    
-    .custom-header img {{
-        height: 35px;
-        object-fit: contain;
-    }}
-
-    /* Empujar el contenido hacia abajo para no quedar bajo el header */
-    .block-container {{ padding-top: 5rem !important; }}
-
-    /* =========================================
-       4. LOGO LOGIN RESPONSIVE
-       ========================================= */
-    .logo-login-container {{
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        margin-bottom: 20px;
-    }}
-    
-    .logo-login-img {{
-        width: 50%;
-        max-width: 300px;
-        height: auto;
-        object-fit: contain;
-    }}
-
-    @media (max-width: 768px) {{
-        .logo-login-img {{
-            width: 30% !important;
-        }}
-        [data-testid="stSidebarCollapsedControl"] {{
-            top: 10px !important;
-            left: 10px !important;
-        }}
-    }}
-
-    /* =========================================
-       5. SIDEBAR (BOTONES UNIDOS - ESTILO ANTERIOR MEJORADO)
-       ========================================= */
-    section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
-        display: block !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        width: 50% !important;
-        align-self: center !important;
-    }}
-    section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
-    
-    section[data-testid="stSidebar"] button {{
-        border: none !important;
-        color: white !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
-        width: 100% !important;
-        transition: all 0.2s !important;
-    }}
-    section[data-testid="stSidebar"] button:hover {{
-        filter: brightness(1.15) !important;
-        z-index: 10 !important;
-    }}
-
-    /* Botones Específicos */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
-
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 10px 10px !important; }}
-
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
-    
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
-
-    div[role="radiogroup"] {{ display: none !important; }}
+    .custom-header img {{ height: 35px; object-fit: contain; }}
 
 </style>
 
@@ -229,7 +221,7 @@ if 'perfil' not in st.session_state: st.session_state.perfil = None
 if 'page_selection' not in st.session_state: st.session_state.page_selection = "Dashboard"
 
 # ==========================================
-# 5. FUNCIONES DE LÓGICA (COMPLETAS)
+# 5. FUNCIONES DE LÓGICA
 # ==========================================
 
 def login(email, password):
