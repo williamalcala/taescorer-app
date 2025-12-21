@@ -8,39 +8,6 @@ from io import BytesIO
 from PIL import Image
 from streamlit_cropper import st_cropper
 import base64
-import streamlit as st
-
-# ... tus imports ...
-
-st.markdown("""
-    <style>
-    /* 1. Ocultar el botón de Deploy/Fork (la parte derecha superior) */
-    .stAppDeployButton {
-        visibility: hidden !important;
-        display: none !important;
-    }
-    
-    /* 2. Ocultar los botones de GitHub y opciones (la parte derecha superior) */
-    [data-testid="stHeaderActionElements"] {
-        visibility: hidden !important;
-        display: none !important;
-    }
-
-    /* 3. Ocultar el pie de página "Hosted with Streamlit" */
-    footer {
-        visibility: hidden !important;
-        display: none !important;
-    }
-
-    /* 4. Ocultar la línea de colores superior (opcional) */
-    [data-testid="stDecoration"] {
-        visibility: hidden !important;
-        display: none !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# ... resto de tu código ...
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -49,7 +16,6 @@ except ImportError:
     calendar = None
 
 # --- 1. CONFIGURACIÓN INICIAL ---
-# CLAVE: initial_sidebar_state="expanded" es vital para que en Desktop empiece abierto
 st.set_page_config(
     page_title="Taescorer", 
     page_icon="favicon.png", 
@@ -101,7 +67,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SOLUCIÓN MENU FIJO DESKTOP / BOTÓN MOBILE) ---
+# --- 4. CSS MAESTRO (INTEGRACIÓN MENU MÓVIL INFERIOR) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -111,150 +77,151 @@ st.markdown(f"""
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* ELIMINAR ELEMENTOS EXTRA DE STREAMLIT */
-    footer, #MainMenu, .stDeployButton, [data-testid="stDecoration"], [data-testid="stStatusWidget"], .viewerBadge_container__1QSob {{ 
+    /* ELIMINAR ELEMENTOS EXTRA DE STREAMLIT (FORK, GITHUB, ETC) */
+    footer, #MainMenu, .stDeployButton, .stAppDeployButton, 
+    [data-testid="stDecoration"], [data-testid="stStatusWidget"], 
+    .viewerBadge_container__1QSob, [data-testid="stHeaderActionElements"] {{ 
         display: none !important; 
+        visibility: hidden !important;
     }}
 
-    /* HEADER NATIVO: TRANSPARENTE PARA QUE NO TAPE NADA */
+    /* HEADER NATIVO: TRANSPARENTE */
     header[data-testid="stHeader"] {{
         background: transparent !important;
-        pointer-events: none !important; /* Permite clickear lo que está abajo */
+        pointer-events: none !important;
         height: 0px !important;
     }}
 
     /* ============================================================
-       COMPORTAMIENTO ESCRITORIO (Pantallas grandes > 992px)
-       El menú debe estar SIEMPRE ABIERTO y sin Header.
+       COMPORTAMIENTO ESCRITORIO (Pantallas > 768px)
        ============================================================ */
-    @media (min-width: 992px) {{
-        /* Ocultar botón para colapsar sidebar (la X o flecha dentro del sidebar) */
-        [data-testid="stSidebar"] button[kind="header"] {{
-            display: none !important;
-        }}
-        
-        /* Ocultar el botón de hamburguesa del header (si apareciera) */
-        [data-testid="stSidebarCollapsedControl"] {{
-            display: none !important;
-        }}
-        
-        /* Ajustar el padding superior ya que no hay header visual */
-        .block-container {{
-            padding-top: 2rem !important;
-        }}
+    @media (min-width: 769px) {{
+        /* Ocultar barra de navegación móvil */
+        .mobile-nav {{ display: none !important; }}
+
+        /* Sidebar Desktop: Ajustes visuales */
+        [data-testid="stSidebar"] button[kind="header"] {{ display: none !important; }}
+        .block-container {{ padding-top: 2rem !important; }}
     }}
 
     /* ============================================================
-       COMPORTAMIENTO MÓVIL (Pantallas pequeñas < 992px)
-       Necesitamos un botón flotante para abrir el menú.
+       COMPORTAMIENTO MÓVIL (Pantallas <= 768px)
        ============================================================ */
-    @media (max-width: 991px) {{
-        /* BOTÓN FLOTANTE HAMBURGUESA */
-        [data-testid="stSidebarCollapsedControl"] {{
-            display: block !important;
-            pointer-events: auto !important; /* Reactivar clic */
-            position: fixed !important;
-            top: 10px !important;
-            left: 10px !important;
-            z-index: 999999 !important;
-            background-color: rgba(31, 32, 43, 0.8) !important; /* Fondo oscuro semitransparente */
-            border: 1px solid rgba(255,255,255,0.2) !important;
-            border-radius: 8px !important;
-            width: 44px !important;
-            height: 44px !important;
-            color: white !important;
+    @media (max-width: 768px) {{
+        /* 1. OCULTAR LA SIDEBAR NATIVA DE STREAMLIT COMPLETA */
+        [data-testid="stSidebar"], [data-testid="collapsedControl"] {{
+            display: none !important;
+        }}
+
+        /* 2. BARRA DE NAVEGACIÓN INFERIOR FIJA */
+        .mobile-nav {{
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background-color: #1f202b; /* Mismo color fondo */
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 999999;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+            padding-bottom: env(safe-area-inset-bottom); /* Para iPhone X+ */
+        }}
+
+        /* ITEMS DE NAVEGACIÓN */
+        .nav-item {{
+            text-decoration: none;
+            color: #888;
+            text-align: center;
+            font-size: 10px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
         }}
         
-        /* Icono del botón en blanco */
-        [data-testid="stSidebarCollapsedControl"] svg {{
-            fill: white !important;
-            stroke: white !important;
-        }}
+        .nav-item:hover {{ color: #0bb4fa; text-decoration: none; }}
         
-        /* Padding extra en móvil para no tapar contenido con el botón */
+        .nav-item.active {{
+            color: #0bb4fa; /* Color Azul Activo */
+            font-weight: bold;
+        }}
+
+        .nav-icon {{
+            font-size: 20px;
+            margin-bottom: 4px;
+            display: block;
+        }}
+
+        /* AJUSTE CONTENIDO PARA QUE NO LO TAPE LA BARRA */
         .block-container {{
-            padding-top: 4rem !important;
+            padding-bottom: 90px !important; 
+            padding-top: 1rem !important;
         }}
     }}
 
     /* =========================================
-       ESTILOS VISUALES DEL SIDEBAR
+       ESTILOS VISUALES DEL SIDEBAR (DESKTOP)
        ========================================= */
-    /* Centrar imagen */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
-        display: block !important;
-        margin: 0 auto !important;
-        width: 60% !important;
+        display: block !important; margin: 0 auto !important; width: 60% !important;
     }}
-    
-    /* Quitar espacios entre botones */
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
-    
-    /* Estilo base de botones */
     section[data-testid="stSidebar"] button {{
-        border: none !important;
-        color: white !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
-        width: 100% !important;
-        transition: all 0.2s !important;
+        border: none !important; color: white !important; font-weight: 600 !important;
+        box-shadow: none !important; width: 100% !important; transition: all 0.2s !important;
     }}
-    section[data-testid="stSidebar"] button:hover {{
-        filter: brightness(1.2) !important;
-    }}
+    section[data-testid="stSidebar"] button:hover {{ filter: brightness(1.2) !important; }}
 
-    /* Botones Específicos (Colores y formas) */
-    /* Perfil */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
-
-    /* Bloque Central */
+    /* Colores botones Sidebar Desktop */
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; margin-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 8px 8px 0 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 8px 8px !important; }}
-
-    /* Salir */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
-    
-    /* Admin */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
-
-    div[role="radiogroup"] {{ display: none !important; }}
-
-    /* HEADER PERSONALIZADO (Solo visual, no interactivo) */
-    .custom-header {{
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 60px;
-        background-color: #1f202b;
-        border-bottom: 1px solid #333;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9000;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    }}
-    .custom-header img {{ height: 35px; object-fit: contain; }}
 
 </style>
-
-<div class="custom-header">
-    <img src="{logo_b64}" alt="Taescorer">
-</div>
 """, unsafe_allow_html=True)
 
 # --- GESTIÓN DE SESIÓN ---
 if 'user' not in st.session_state: st.session_state.user = None
 if 'perfil' not in st.session_state: st.session_state.perfil = None
-if 'page_selection' not in st.session_state: st.session_state.page_selection = "Dashboard"
+
+# LOGICA DE SINCRONIZACIÓN URL <-> ESTADO (Vital para el menú móvil HTML)
+# Definimos el mapa de rutas
+MAPA_RUTAS = {
+    "dashboard": "Dashboard",
+    "registro": "Registrar Torneo",
+    "base": "Base de Torneos",
+    "calendario": "Calendario",
+    "perfil": "Mi Perfil",
+    "admin": "Admin Users"
+}
+
+# 1. Leemos URL
+query_params = st.query_params
+page_param = query_params.get("page", "dashboard") # default dashboard
+
+# 2. Si no hay estado definido, lo tomamos de la URL
+if 'page_selection' not in st.session_state:
+    st.session_state.page_selection = MAPA_RUTAS.get(page_param, "Dashboard")
+
+# 3. Función para cambiar página desde botones de escritorio
+def navegar_a(nombre_interno):
+    st.session_state.page_selection = nombre_interno
+    # Actualizamos URL para mantener consistencia
+    key_url = [k for k, v in MAPA_RUTAS.items() if v == nombre_interno]
+    if key_url:
+        st.query_params["page"] = key_url[0]
 
 # ==========================================
-# 5. FUNCIONES DE LÓGICA
+# 5. FUNCIONES DE LÓGICA (TUS FUNCIONES INTACTAS)
 # ==========================================
 
 def login(email, password):
@@ -588,7 +555,7 @@ def mostrar_calendario():
             "list": "Lista", "prev": "Ant", "next": "Sig"
         },
         "initialView": "dayGridMonth",
-        "locale": "es",           
+        "locale": "es",            
         "height": 800,  
         "navLinks": True,
         "selectable": True,
@@ -846,7 +813,6 @@ def main():
         # LOGIN (Logo con wrapper responsive: 50% Desktop / 30% Mobile)
         c_espacio1, c_central, c_espacio2 = st.columns([1, 2, 1])
         with c_central:
-            # Envolvemos el logo en un contenedor HTML puro para tener control total del CSS
             st.markdown(f'''
                 <div class="logo-login-html">
                     <img src="{logo_b64}" class="logo-login-img">
@@ -864,12 +830,37 @@ def main():
                 np = st.text_input("Pass", type="password", key="rp")
                 if st.button("Registrarse", use_container_width=True): sign_up(ne, np, nn)
     else:
+        # ==========================================
         # APP PRINCIPAL
+        # ==========================================
         if not st.session_state.perfil: cargar_perfil()
         p = st.session_state.perfil
         foto = p.get('foto_url') if p else "https://cdn-icons-png.flaticon.com/512/847/847969.png"
         nom = p.get('nombre_completo', "Atleta")
         
+        # --- A. BARRA DE NAVEGACIÓN MÓVIL (HTML PURO) ---
+        # Se inyecta aquí y el CSS 'CSS MAESTRO' se encarga de mostrarla solo en móvil
+        # Usamos ?page=... para recargar la app y que python capture el parámetro
+        # NOTA: En HTML, el & necesita ser &amp; si es parte de texto visible, pero en iconos emoji está ok.
+        st.markdown(f"""
+            <div class="mobile-nav">
+                <a href="?page=perfil" class="nav-item {'active' if st.session_state.page_selection == 'Mi Perfil' else ''}" target="_self">
+                    <span class="nav-icon">👤</span>Perfil
+                </a>
+                <a href="?page=dashboard" class="nav-item {'active' if st.session_state.page_selection == 'Dashboard' else ''}" target="_self">
+                    <span class="nav-icon">📊</span>Dash
+                </a>
+                <a href="?page=registro" class="nav-item {'active' if st.session_state.page_selection == 'Registrar Torneo' else ''}" target="_self">
+                    <span class="nav-icon">📝</span>Nuevo
+                </a>
+                <a href="?page=calendario" class="nav-item {'active' if st.session_state.page_selection == 'Calendario' else ''}" target="_self">
+                    <span class="nav-icon">📅</span>Agenda
+                </a>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # --- B. SIDEBAR (SOLO DESKTOP) ---
+        # El CSS 'CSS MAESTRO' oculta esto en móviles
         with st.sidebar:
             try: st.image("logo-taescorer.png")
             except: pass
@@ -882,29 +873,25 @@ def main():
                 <p class="user-name">{nom}</p>
             """, unsafe_allow_html=True)
             
-            # 1. PERFIL
-            if st.button("Ir a Mi Perfil", use_container_width=True): st.session_state.page_selection = "Mi Perfil"; st.rerun()
+            if st.button("Ir a Mi Perfil", use_container_width=True): navegar_a("Mi Perfil"); st.rerun()
             st.divider()
             
-            # BLOQUE UNIDO DE 4 BOTONES (TODOS CON use_container_width=True)
-            if st.button("Dashboard", use_container_width=True): st.session_state.page_selection = "Dashboard"; st.rerun()
-            if st.button("Registrar Resultados", use_container_width=True): st.session_state.page_selection = "Registrar Torneo"; st.rerun()
-            if st.button("Base de Torneos", use_container_width=True): st.session_state.page_selection = "Base de Torneos"; st.rerun()
-            if st.button("Calendario", use_container_width=True): st.session_state.page_selection = "Calendario"; st.rerun() 
+            if st.button("Dashboard", use_container_width=True): navegar_a("Dashboard"); st.rerun()
+            if st.button("Registrar Resultados", use_container_width=True): navegar_a("Registrar Torneo"); st.rerun()
+            if st.button("Base de Torneos", use_container_width=True): navegar_a("Base de Torneos"); st.rerun()
+            if st.button("Calendario", use_container_width=True): navegar_a("Calendario"); st.rerun() 
             
             st.divider()
-            # 6. SALIR
             if st.button("Salir", use_container_width=True): logout()
 
-            # --- ZONA DE ADMINISTRADOR ---
             if st.session_state.user.email == "williamgazzu@gmail.com": 
                 st.divider()
                 st.caption("🔒 Admin Zone")
                 if st.button("Ver Usuarios", use_container_width=True):
-                    st.session_state.page_selection = "Admin Users"
+                    navegar_a("Admin Users")
                     st.rerun()
 
-        # ROUTER
+        # --- C. ROUTER (CONTENIDO CENTRAL) ---
         if st.session_state.page_selection == "Dashboard": mostrar_dashboard()
         elif st.session_state.page_selection == "Registrar Torneo": mostrar_formulario_registro()
         elif st.session_state.page_selection == "Base de Torneos": mostrar_historial_editor()
@@ -914,12 +901,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
