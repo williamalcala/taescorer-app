@@ -67,7 +67,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (INTEGRACIÓN MENU MÓVIL INFERIOR) ---
+# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA MOBILE) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -75,98 +75,96 @@ st.markdown(f"""
 
     /* FONDO OSCURO */
     .stApp {{ background-color: #1f202b !important; }}
-    div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
-
-    /* ELIMINAR ELEMENTOS EXTRA DE STREAMLIT (FORK, GITHUB, ETC) */
+    
+    /* Ocultar elementos nativos de Streamlit */
     footer, #MainMenu, .stDeployButton, .stAppDeployButton, 
     [data-testid="stDecoration"], [data-testid="stStatusWidget"], 
     .viewerBadge_container__1QSob, [data-testid="stHeaderActionElements"] {{ 
         display: none !important; 
-        visibility: hidden !important;
     }}
 
-    /* HEADER NATIVO: TRANSPARENTE */
+    /* Header transparente y oculto */
     header[data-testid="stHeader"] {{
         background: transparent !important;
-        pointer-events: none !important;
         height: 0px !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }}
 
     /* ============================================================
-       COMPORTAMIENTO ESCRITORIO (Pantallas > 768px)
+       COMPORTAMIENTO ESCRITORIO (Pantallas > 992px)
        ============================================================ */
-    @media (min-width: 769px) {{
-        /* Ocultar barra de navegación móvil */
+    @media (min-width: 993px) {{
         .mobile-nav {{ display: none !important; }}
-
-        /* Sidebar Desktop: Ajustes visuales */
-        [data-testid="stSidebar"] button[kind="header"] {{ display: none !important; }}
+        
+        /* Ajuste de padding superior para escritorio */
         .block-container {{ padding-top: 2rem !important; }}
     }}
 
     /* ============================================================
-       COMPORTAMIENTO MÓVIL (Pantallas <= 768px)
+       COMPORTAMIENTO MÓVIL (Pantallas <= 992px)
        ============================================================ */
-    @media (max-width: 768px) {{
-        /* 1. OCULTAR LA SIDEBAR NATIVA DE STREAMLIT COMPLETA */
+    @media (max-width: 992px) {{
+        /* 1. OCULTAR SIDEBAR NATIVA DE FORMA AGRESIVA */
         [data-testid="stSidebar"], [data-testid="collapsedControl"] {{
             display: none !important;
-        }}
-
-        /* 2. BARRA DE NAVEGACIÓN INFERIOR FIJA */
-        .mobile-nav {{
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 70px;
-            background-color: #1f202b; /* Mismo color fondo */
-            border-top: 1px solid #333;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 999999;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-            padding-bottom: env(safe-area-inset-bottom); /* Para iPhone X+ */
-        }}
-
-        /* ITEMS DE NAVEGACIÓN */
-        .nav-item {{
-            text-decoration: none;
-            color: #888;
-            text-align: center;
-            font-size: 10px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
+            width: 0px !important;
         }}
         
-        .nav-item:hover {{ color: #0bb4fa; text-decoration: none; }}
+        /* 2. DAR ESPACIO ABAJO PARA LA BARRA */
+        .block-container {{
+            padding-bottom: 120px !important;
+            padding-top: 1rem !important;
+        }}
+
+        /* 3. BARRA DE NAVEGACIÓN FLOTANTE (Fixed) */
+        .mobile-nav {{
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 75px !important;
+            background-color: #1f202b !important;
+            border-top: 1px solid #333 !important;
+            display: flex !important;
+            justify-content: space-around !important;
+            align-items: center !important;
+            z-index: 99999999 !important; /* MÁXIMA PRIORIDAD */
+            box-shadow: 0px -4px 10px rgba(0,0,0,0.4) !important;
+            padding-bottom: env(safe-area-inset-bottom);
+        }}
+
+        .nav-item {{
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-decoration: none !important;
+            color: #888 !important;
+            font-size: 11px !important;
+            flex-grow: 1 !important;
+            height: 100% !important;
+            background: transparent !important;
+            border: none !important;
+        }}
+
+        .nav-item:hover {{
+            color: #0bb4fa !important;
+        }}
         
         .nav-item.active {{
-            color: #0bb4fa; /* Color Azul Activo */
-            font-weight: bold;
+            color: #0bb4fa !important;
+            font-weight: 700 !important;
         }}
 
         .nav-icon {{
-            font-size: 20px;
-            margin-bottom: 4px;
-            display: block;
-        }}
-
-        /* AJUSTE CONTENIDO PARA QUE NO LO TAPE LA BARRA */
-        .block-container {{
-            padding-bottom: 90px !important; 
-            padding-top: 1rem !important;
+            font-size: 24px !important;
+            margin-bottom: 4px !important;
+            display: block !important;
         }}
     }}
-
-    /* =========================================
-       ESTILOS VISUALES DEL SIDEBAR (DESKTOP)
-       ========================================= */
+    
+    /* ESTILOS SIDEBAR DESKTOP */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
         display: block !important; margin: 0 auto !important; width: 60% !important;
     }}
@@ -176,8 +174,8 @@ st.markdown(f"""
         box-shadow: none !important; width: 100% !important; transition: all 0.2s !important;
     }}
     section[data-testid="stSidebar"] button:hover {{ filter: brightness(1.2) !important; }}
-
-    /* Colores botones Sidebar Desktop */
+    
+    /* Colores Específicos Sidebar Desktop */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; margin-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 8px 8px 0 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
@@ -193,8 +191,7 @@ st.markdown(f"""
 if 'user' not in st.session_state: st.session_state.user = None
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
-# LOGICA DE SINCRONIZACIÓN URL <-> ESTADO (Vital para el menú móvil HTML)
-# Definimos el mapa de rutas
+# LOGICA DE SINCRONIZACIÓN URL <-> ESTADO
 MAPA_RUTAS = {
     "dashboard": "Dashboard",
     "registro": "Registrar Torneo",
@@ -204,24 +201,24 @@ MAPA_RUTAS = {
     "admin": "Admin Users"
 }
 
-# 1. Leemos URL
+# 1. Leer URL
 query_params = st.query_params
 page_param = query_params.get("page", "dashboard") # default dashboard
 
-# 2. Si no hay estado definido, lo tomamos de la URL
+# 2. Si no hay estado definido, usar URL
 if 'page_selection' not in st.session_state:
     st.session_state.page_selection = MAPA_RUTAS.get(page_param, "Dashboard")
 
-# 3. Función para cambiar página desde botones de escritorio
+# 3. Helper para navegación desktop
 def navegar_a(nombre_interno):
     st.session_state.page_selection = nombre_interno
-    # Actualizamos URL para mantener consistencia
+    # Actualizar URL
     key_url = [k for k, v in MAPA_RUTAS.items() if v == nombre_interno]
     if key_url:
         st.query_params["page"] = key_url[0]
 
 # ==========================================
-# 5. FUNCIONES DE LÓGICA (TUS FUNCIONES INTACTAS)
+# 5. FUNCIONES DE LÓGICA
 # ==========================================
 
 def login(email, password):
@@ -831,36 +828,39 @@ def main():
                 if st.button("Registrarse", use_container_width=True): sign_up(ne, np, nn)
     else:
         # ==========================================
-        # APP PRINCIPAL
+        # APP PRINCIPAL (USUARIO LOGUEADO)
         # ==========================================
         if not st.session_state.perfil: cargar_perfil()
         p = st.session_state.perfil
         foto = p.get('foto_url') if p else "https://cdn-icons-png.flaticon.com/512/847/847969.png"
         nom = p.get('nombre_completo', "Atleta")
         
-        # --- A. BARRA DE NAVEGACIÓN MÓVIL (HTML PURO) ---
-        # Se inyecta aquí y el CSS 'CSS MAESTRO' se encarga de mostrarla solo en móvil
-        # Usamos ?page=... para recargar la app y que python capture el parámetro
-        # NOTA: En HTML, el & necesita ser &amp; si es parte de texto visible, pero en iconos emoji está ok.
+        # --- A. BARRA DE NAVEGACIÓN MÓVIL (INYECTADA AQUÍ) ---
+        # Está fuera de la sidebar para que sea visible en main body
+        # El CSS arriba ('mobile-nav') se encarga de que sea 'fixed' abajo
         st.markdown(f"""
             <div class="mobile-nav">
                 <a href="?page=perfil" class="nav-item {'active' if st.session_state.page_selection == 'Mi Perfil' else ''}" target="_self">
-                    <span class="nav-icon">👤</span>Perfil
+                    <span class="nav-icon">👤</span>
+                    <span>Perfil</span>
                 </a>
                 <a href="?page=dashboard" class="nav-item {'active' if st.session_state.page_selection == 'Dashboard' else ''}" target="_self">
-                    <span class="nav-icon">📊</span>Dash
+                    <span class="nav-icon">📊</span>
+                    <span>Dash</span>
                 </a>
                 <a href="?page=registro" class="nav-item {'active' if st.session_state.page_selection == 'Registrar Torneo' else ''}" target="_self">
-                    <span class="nav-icon">📝</span>Nuevo
+                    <span class="nav-icon">📝</span>
+                    <span>Nuevo</span>
                 </a>
                 <a href="?page=calendario" class="nav-item {'active' if st.session_state.page_selection == 'Calendario' else ''}" target="_self">
-                    <span class="nav-icon">📅</span>Agenda
+                    <span class="nav-icon">📅</span>
+                    <span>Agenda</span>
                 </a>
             </div>
         """, unsafe_allow_html=True)
 
         # --- B. SIDEBAR (SOLO DESKTOP) ---
-        # El CSS 'CSS MAESTRO' oculta esto en móviles
+        # El CSS oculta toda la sidebar en pantallas < 992px
         with st.sidebar:
             try: st.image("logo-taescorer.png")
             except: pass
