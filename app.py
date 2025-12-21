@@ -12,26 +12,31 @@ import streamlit as st
 
 # ... tus otros imports ...
 
+# --- CÓDIGO CSS CORREGIDO ---
 hide_elements = """
     <style>
-    /* Ocultar solo la barra de herramientas de la derecha (Fork, GitHub, 3 puntos) */
-    [data-testid="stToolbar"] {
-        visibility: hidden;
-        display: none;
-    }
-    
-    /* Ocultar la decoración de colores superior (opcional, si quieres el look limpio) */
-    [data-testid="stDecoration"] {
+    /* 1. Ocultamos el header (donde está el Fork, Github, etc.) */
+    header {
         visibility: hidden;
     }
     
-    /* Ocultar el pie de página */
+    /* 2. IMPORTANTE: Forzamos a que el botón del menú (la flechita) SÍ se vea */
+    [data-testid="collapsedControl"] {
+        visibility: visible !important;
+        display: block !important;
+        /* Opcional: ajustar posición si se ve raro */
+        top: 2rem; 
+    }
+
+    /* 3. Ocultamos el footer de 'Made with Streamlit' */
     footer {
         visibility: hidden;
     }
     </style>
 """
 st.markdown(hide_elements, unsafe_allow_html=True)
+
+# ... resto de tu código ...
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -905,6 +910,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
