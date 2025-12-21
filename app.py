@@ -8,7 +8,38 @@ from io import BytesIO
 from PIL import Image
 from streamlit_cropper import st_cropper
 import base64
+import streamlit as st
 
+# ... tus imports ...
+
+# --- CÓDIGO FINAL ---
+st.markdown("""
+    <style>
+    /* 1. Ocultar la barra de herramientas (donde están el Fork y GitHub) */
+    [data-testid="stToolbar"] {
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* 2. Ocultar la decoración superior (la línea de colores) */
+    [data-testid="stDecoration"] {
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* 3. Ocultar el pie de página "Hosted with Streamlit" */
+    footer {
+        visibility: hidden !important;
+        display: none !important;
+    }
+    
+    /* 4. IMPORTANTE: Esto asegura que el botón del menú NO se oculte */
+    [data-testid="collapsedControl"] {
+        display: block !important;
+        visibility: visible !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -882,6 +913,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
