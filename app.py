@@ -12,17 +12,16 @@ import streamlit as st
 
 # ... tus imports ...
 
-# --- CÓDIGO FINAL ---
 st.markdown("""
     <style>
-    /* 1. Ocultar la barra de herramientas (donde están el Fork y GitHub) */
-    [data-testid="stToolbar"] {
+    /* 1. Ocultar el botón de Deploy/Fork (la parte derecha superior) */
+    .stAppDeployButton {
         visibility: hidden !important;
         display: none !important;
     }
-
-    /* 2. Ocultar la decoración superior (la línea de colores) */
-    [data-testid="stDecoration"] {
+    
+    /* 2. Ocultar los botones de GitHub y opciones (la parte derecha superior) */
+    [data-testid="stHeaderActionElements"] {
         visibility: hidden !important;
         display: none !important;
     }
@@ -32,14 +31,16 @@ st.markdown("""
         visibility: hidden !important;
         display: none !important;
     }
-    
-    /* 4. IMPORTANTE: Esto asegura que el botón del menú NO se oculte */
-    [data-testid="collapsedControl"] {
-        display: block !important;
-        visibility: visible !important;
+
+    /* 4. Ocultar la línea de colores superior (opcional) */
+    [data-testid="stDecoration"] {
+        visibility: hidden !important;
+        display: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
+
+# ... resto de tu código ...
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -913,6 +914,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
