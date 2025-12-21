@@ -8,6 +8,30 @@ from io import BytesIO
 from PIL import Image
 from streamlit_cropper import st_cropper
 import base64
+import streamlit as st
+
+# ... tus otros imports ...
+
+hide_elements = """
+    <style>
+    /* Ocultar solo la barra de herramientas de la derecha (Fork, GitHub, 3 puntos) */
+    [data-testid="stToolbar"] {
+        visibility: hidden;
+        display: none;
+    }
+    
+    /* Ocultar la decoración de colores superior (opcional, si quieres el look limpio) */
+    [data-testid="stDecoration"] {
+        visibility: hidden;
+    }
+    
+    /* Ocultar el pie de página */
+    footer {
+        visibility: hidden;
+    }
+    </style>
+"""
+st.markdown(hide_elements, unsafe_allow_html=True)
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -881,5 +905,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
