@@ -12,31 +12,32 @@ import streamlit as st
 
 # ... tus otros imports ...
 
-# --- CÓDIGO CSS CORREGIDO ---
-hide_elements = """
+hide_specific_elements = """
     <style>
-    /* 1. Ocultamos el header (donde está el Fork, Github, etc.) */
-    header {
-        visibility: hidden;
-    }
+    /* Ocultar el menú principal (las 3 rayitas de la derecha) */
+    #MainMenu {visibility: hidden;}
     
-    /* 2. IMPORTANTE: Forzamos a que el botón del menú (la flechita) SÍ se vea */
-    [data-testid="collapsedControl"] {
-        visibility: visible !important;
-        display: block !important;
-        /* Opcional: ajustar posición si se ve raro */
-        top: 2rem; 
+    /* Ocultar el pie de página */
+    footer {visibility: hidden;}
+    
+    /* Ocultar los elementos de acción del encabezado (donde suelen estar Fork, GitHub, etc.) */
+    [data-testid="stHeaderActionElements"] {
+        display: none !important;
     }
 
-    /* 3. Ocultamos el footer de 'Made with Streamlit' */
-    footer {
-        visibility: hidden;
+    /* Ocultar la barra de herramientas completa de la derecha */
+    [data-testid="stToolbar"] {
+        visibility: hidden !important;
+        display: none !important;
+    }
+    
+    /* En algunos casos, el botón de deploy tiene su propia clase */
+    .stAppDeployButton {
+        display: none !important;
     }
     </style>
 """
-st.markdown(hide_elements, unsafe_allow_html=True)
-
-# ... resto de tu código ...
+st.markdown(hide_specific_elements, unsafe_allow_html=True)
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -910,6 +911,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
