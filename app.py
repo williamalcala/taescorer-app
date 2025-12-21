@@ -16,6 +16,7 @@ except ImportError:
     calendar = None
 
 # --- 1. CONFIGURACIÓN INICIAL ---
+# CLAVE: initial_sidebar_state="expanded" es vital para que en Desktop empiece abierto
 st.set_page_config(
     page_title="Taescorer", 
     page_icon="favicon.png", 
@@ -67,7 +68,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA: MENU + CLEANUP + BOTONES CON BORDE) ---
+# --- 4. CSS MAESTRO (SOLUCIÓN MENU FIJO DESKTOP / BOTÓN MOBILE) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -77,73 +78,88 @@ st.markdown(f"""
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* ============================================================
-       1. LIMPIEZA DE ICONOS STREAMLIT (Toolbar, GitHub, Manage App)
-       ============================================================ */
-    
-    [data-testid="stToolbar"] {{
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
+    /* ELIMINAR ELEMENTOS EXTRA DE STREAMLIT */
+    footer, #MainMenu, .stDeployButton, [data-testid="stDecoration"], [data-testid="stStatusWidget"], .viewerBadge_container__1QSob {{ 
+        display: none !important; 
     }}
-    [data-testid="stDecoration"] {{ display: none !important; }}
-    .viewerBadge_container__1QSob, [class^="viewerBadge_"], [data-testid="stStatusWidget"] {{ display: none !important; }}
-    footer, #MainMenu, .stDeployButton {{ display: none !important; }}
 
-    /* ============================================================
-       2. CONTROL DEL MENU (Desktop Fijo / Mobile Flotante)
-       ============================================================ */
-    
+    /* HEADER NATIVO: TRANSPARENTE PARA QUE NO TAPE NADA */
     header[data-testid="stHeader"] {{
         background: transparent !important;
-        pointer-events: none !important;
+        pointer-events: none !important; /* Permite clickear lo que está abajo */
         height: 0px !important;
     }}
 
-    /* ESCRITORIO (> 992px) */
+    /* ============================================================
+       COMPORTAMIENTO ESCRITORIO (Pantallas grandes > 992px)
+       El menú debe estar SIEMPRE ABIERTO y sin Header.
+       ============================================================ */
     @media (min-width: 992px) {{
-        [data-testid="stSidebar"] button[kind="header"] {{ display: none !important; }}
-        [data-testid="stSidebarCollapsedControl"] {{ display: none !important; }}
-        .block-container {{ padding-top: 2rem !important; }}
+        /* Ocultar botón para colapsar sidebar (la X o flecha dentro del sidebar) */
+        [data-testid="stSidebar"] button[kind="header"] {{
+            display: none !important;
+        }}
+        
+        /* Ocultar el botón de hamburguesa del header (si apareciera) */
+        [data-testid="stSidebarCollapsedControl"] {{
+            display: none !important;
+        }}
+        
+        /* Ajustar el padding superior ya que no hay header visual */
+        .block-container {{
+            padding-top: 2rem !important;
+        }}
     }}
 
-    /* MÓVIL (< 991px) */
+    /* ============================================================
+       COMPORTAMIENTO MÓVIL (Pantallas pequeñas < 992px)
+       Necesitamos un botón flotante para abrir el menú.
+       ============================================================ */
     @media (max-width: 991px) {{
-        div[data-testid="stSidebarCollapsedControl"] {{
+        /* BOTÓN FLOTANTE HAMBURGUESA */
+        [data-testid="stSidebarCollapsedControl"] {{
             display: block !important;
-            visibility: visible !important;
-            pointer-events: auto !important;
+            pointer-events: auto !important; /* Reactivar clic */
             position: fixed !important;
-            top: 15px !important;
-            left: 15px !important;
-            z-index: 1000001 !important;
-            background-color: rgba(31, 32, 43, 0.9) !important;
+            top: 10px !important;
+            left: 10px !important;
+            z-index: 999999 !important;
+            background-color: rgba(31, 32, 43, 0.8) !important; /* Fondo oscuro semitransparente */
             border: 1px solid rgba(255,255,255,0.2) !important;
             border-radius: 8px !important;
             width: 44px !important;
             height: 44px !important;
             color: white !important;
         }}
+        
+        /* Icono del botón en blanco */
         [data-testid="stSidebarCollapsedControl"] svg {{
             fill: white !important;
             stroke: white !important;
         }}
-        .block-container {{ padding-top: 4rem !important; }}
+        
+        /* Padding extra en móvil para no tapar contenido con el botón */
+        .block-container {{
+            padding-top: 4rem !important;
+        }}
     }}
 
     /* =========================================
-       3. ESTILOS VISUALES DEL SIDEBAR (BOTONES MARCADOS)
+       ESTILOS VISUALES DEL SIDEBAR
        ========================================= */
+    /* Centrar imagen */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
         display: block !important;
         margin: 0 auto !important;
         width: 60% !important;
     }}
+    
+    /* Quitar espacios entre botones */
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
     
-    /* ESTILO BASE DE BOTONES - AHORA CON BORDE */
+    /* Estilo base de botones */
     section[data-testid="stSidebar"] button {{
-        border: 1px solid rgba(255, 255, 255, 0.2) !important; /* BORDE AÑADIDO */
+        border: none !important;
         color: white !important;
         font-weight: 600 !important;
         box-shadow: none !important;
@@ -152,27 +168,30 @@ st.markdown(f"""
     }}
     section[data-testid="stSidebar"] button:hover {{
         filter: brightness(1.2) !important;
-        border-color: rgba(255, 255, 255, 0.6) !important; /* Borde más brillante al pasar mouse */
     }}
 
-    /* Botones Específicos */
+    /* Botones Específicos (Colores y formas) */
+    /* Perfil */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
 
+    /* Bloque Central */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 8px 8px 0 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 8px 8px !important; }}
 
+    /* Salir */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
     
+    /* Admin */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
 
     div[role="radiogroup"] {{ display: none !important; }}
 
-    /* HEADER PERSONALIZADO (Solo visual) */
+    /* HEADER PERSONALIZADO (Solo visual, no interactivo) */
     .custom-header {{
         position: fixed;
         top: 0;
