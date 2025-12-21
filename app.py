@@ -8,26 +8,6 @@ from io import BytesIO
 from PIL import Image
 from streamlit_cropper import st_cropper
 import base64
-import streamlit as st
-
-# ... tus otros imports ...
-
-# --- CÓDIGO PARA OCULTAR LOS ÍCONOS Y LA MARCA DE AGUA ---
-hide_elements = """
-    <style>
-    /* Ocultar la barra superior (Fork, GitHub, etc.) */
-    header {visibility: hidden;}
-    
-    /* Ocultar el pie de página (Hosted with Streamlit) */
-    footer {visibility: hidden;}
-    
-    /* Ocultar el menú de hamburguesa (las 3 rayitas arriba a la derecha) */
-    #MainMenu {visibility: hidden;}
-    </style>
-"""
-st.markdown(hide_elements, unsafe_allow_html=True)
-
-# ... el resto de tu código ...
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -901,4 +881,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
