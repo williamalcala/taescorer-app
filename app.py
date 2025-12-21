@@ -7,7 +7,7 @@ import plotly.express as px
 from io import BytesIO
 from PIL import Image
 from streamlit_cropper import st_cropper
-import base64 # <--- NUEVO: Necesario para el logo en el header
+import base64
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -20,10 +20,10 @@ st.set_page_config(
     page_title="Taescorer", 
     page_icon="favicon.png", 
     layout="wide",
-    initial_sidebar_state="collapsed" # En mobile se ve mejor si arranca cerrado
+    initial_sidebar_state="collapsed"
 )
 
-# --- FUNCIÓN AUXILIAR PARA LOGO EN BASE64 ---
+# --- FUNCIÓN AUXILIAR PARA LOGO ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as image_file:
@@ -32,7 +32,6 @@ def get_image_base64(path):
     except:
         return ""
 
-# Cargar el logo para usarlo en el header
 logo_b64 = get_image_base64("logo-taescorer.png")
 
 # --- 2. CONEXIÓN BASE DE DATOS ---
@@ -68,53 +67,90 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS: DISEÑO MOBILE, HEADER FIJO Y MODO OSCURO FORZADO ---
+# --- 4. CSS: SOLUCIÓN COMPLETA (HEADER, MENU, LOGO MOBILE, SIN ICONOS EXTRAS) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
-    /* --- 1. FORZAR FONDO OSCURO SIEMPRE (#1f202b) --- */
-    .stApp {{
-        background-color: #1f202b !important;
-    }}
-    /* Asegurar que modales y otros contenedores también sean oscuros */
+    /* --- A. FONDO OSCURO FORZADO --- */
+    .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
+
+    /* --- B. LIMPIEZA DE INTERFAZ (Adiós GitHub, Corona, Toolbar) --- */
+    [data-testid="stToolbar"] {{ display: none !important; }} 
+    .stDeployButton {{ display: none !important; }}
+    #MainMenu {{ display: none !important; }}
+    footer {{ display: none !important; }}
+    .viewerBadge_container__1QSob {{ display: none !important; }} /* Oculta badge de Streamlit Cloud */
     
-    /* --- 2. HEADER FIJO EN EL TOP (NAVBAR) --- */
-    /* Ocultamos el header nativo de Streamlit para poner el nuestro */
+    /* Ocultar la línea decorativa de colores arriba */
     header[data-testid="stHeader"] {{
-        background-color: transparent !important;
-        z-index: 1 !important; /* Para que el botón de hamburguesa nativo siga funcionando */
+        background: transparent !important;
+        box-shadow: none !important;
     }}
-    
-    /* Nuestro Navbar Personalizado */
+    header[data-testid="stHeader"] > div:first-child {{ display: none !important; }}
+
+    /* --- C. MENÚ HAMBURGUESA (El botón de barras) --- */
+    /* Lo hacemos visible, blanco y lo ponemos encima del header fijo */
+    button[kind="header"] {{
+        visibility: visible !important;
+        color: white !important;
+        z-index: 99999 !important; /* Capa más alta */
+        position: fixed;
+        top: 12px; 
+        left: 15px;
+        background: transparent !important;
+        border: none !important;
+    }}
+    button[kind="header"]:hover {{
+        background: rgba(255,255,255,0.1) !important;
+        color: #0bb4fa !important;
+    }}
+
+    /* --- D. HEADER PERSONALIZADO FIJO --- */
     .custom-header {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 60px; /* Altura del header */
-        background-color: #1f202b; /* Mismo color de fondo */
+        height: 60px;
+        background-color: #1f202b;
         border-bottom: 1px solid #333;
         display: flex;
-        justify-content: center;
+        justify-content: center; /* Logo al centro */
         align-items: center;
-        z-index: 9999;
+        z-index: 9990; /* Debajo del botón hamburguesa pero encima del contenido */
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }}
-    
     .custom-header img {{
-        height: 40px; /* Tamaño del logo en el header */
+        height: 35px;
         object-fit: contain;
     }}
 
-    /* Empujar el contenido hacia abajo para que el header no lo tape */
-    .block-container {{
-        padding-top: 5rem !important; 
+    /* Empujar contenido abajo */
+    .block-container {{ padding-top: 5rem !important; }}
+
+    /* --- E. LOGO LOGIN RESPONSIVE --- */
+    /* En PC se ve normal, en celular (max-width 768px) se reduce al 50% */
+    .login-logo-box img {{
+        width: 100%; /* Default PC */
+        max-width: 400px;
+    }}
+    
+    @media (max-width: 768px) {{
+        .login-logo-box {{
+            display: flex;
+            justify-content: center;
+        }}
+        .login-logo-box img {{
+            width: 50% !important; /* 50% en Mobile */
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }}
     }}
 
-    /* --- 3. DISEÑO DEL SIDEBAR (BOTONES UNIDOS) --- */
+    /* --- F. SIDEBAR Y BOTONES (TU DISEÑO INTOCABLE) --- */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
         display: block !important;
         margin-left: auto !important;
@@ -122,79 +158,42 @@ st.markdown(f"""
         width: 50% !important;
         align-self: center !important;
     }}
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
     
-    section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{
-        gap: 0rem !important;
-    }}
-
     section[data-testid="stSidebar"] button {{
         border: none !important;
         color: white !important;
         font-weight: 600 !important;
         box-shadow: none !important;
-        transition: filter 0.2s !important;
+        width: 100% !important;
     }}
     section[data-testid="stSidebar"] button:hover {{
         filter: brightness(1.15) !important;
         z-index: 10 !important;
     }}
 
-    /* ESTILOS DE LOS BOTONES DEL MENÚ */
+    /* COLORES BOTONES */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{
-        background-color: #2b2c35 !important;
-        border-radius: 8px !important;
-    }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
 
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{
-        background-color: #0bb4fa !important;
-        border-radius: 10px 10px 0 0 !important;
-        margin-bottom: 1px !important;
-    }}
-    
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{
-        background-color: #00f9b1 !important;
-        color: #1e1e1e !important;
-        border-radius: 0 !important;
-        margin-bottom: 1px !important;
-    }}
-    
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{
-        background-color: #3a2783 !important;
-        border-radius: 0 !important;
-        margin-bottom: 1px !important;
-    }}
-    
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{
-        background-color: #ff9f1c !important;
-        border-radius: 0 0 10px 10px !important;
-    }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 10px 10px !important; }}
 
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{
-        background-color: #2b2c35 !important;
-        border-radius: 8px !important;
-    }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
     
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{
-        background-color: #581818 !important;
-        border-radius: 8px !important;
-        border: 1px solid #ff4b4b !important;
-    }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
 
-    /* OCULTAR ELEMENTOS INNECESARIOS */
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    div[data-testid="stToolbar"] {{visibility: hidden;}}
     div[role="radiogroup"] {{ display: none !important; }}
 
 </style>
 
 <div class="custom-header">
-    <img src="{logo_b64}" alt="Taescorer Logo">
+    <img src="{logo_b64}" alt="Logo">
 </div>
-
 """, unsafe_allow_html=True)
 
 # --- GESTIÓN DE SESIÓN ---
@@ -481,22 +480,23 @@ def mostrar_calendario():
 
             if st.button("💾 Guardar Cambios en Agenda", type="primary"):
                 try:
-                    ids_originales = [row['id'] for row in eventos_db]
-                    ids_finales = []
-                    for index, row in edited_df.iterrows():
-                        if pd.notna(row.get('id')):
-                            ids_finales.append(row['id'])
-                            supabase.table("agenda").update({
-                                "nombre": row['nombre'], "fecha_inicio": str(row['fecha_inicio']), 
-                                "fecha_fin": str(row['fecha_fin']), "estatus": row['estatus'], 
-                                "comentarios": row['comentarios']
-                            }).eq("id", row['id']).execute()
-                        else:
-                            guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
-                    
-                    for old_id in ids_originales:
-                        if old_id not in ids_finales:
-                            supabase.table("agenda").delete().eq("id", old_id).execute()
+                    with st.spinner("Sincronizando agenda..."):
+                        ids_originales = [row['id'] for row in eventos_db]
+                        ids_finales = []
+                        for index, row in edited_df.iterrows():
+                            if pd.notna(row.get('id')):
+                                ids_finales.append(row['id'])
+                                supabase.table("agenda").update({
+                                    "nombre": row['nombre'], "fecha_inicio": str(row['fecha_inicio']), 
+                                    "fecha_fin": str(row['fecha_fin']), "estatus": row['estatus'], 
+                                    "comentarios": row['comentarios']
+                                }).eq("id", row['id']).execute()
+                            else:
+                                guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
+                        
+                        for old_id in ids_originales:
+                            if old_id not in ids_finales:
+                                supabase.table("agenda").delete().eq("id", old_id).execute()
 
                     st.success("Agenda actualizada correctamente.")
                     time.sleep(1)
@@ -525,7 +525,6 @@ def mostrar_calendario():
             "extendedProps": {"description": evt.get('comentarios', '')}
         })
 
-    # CALENDARIO CONFIG (800PX DE ALTO)
     calendar_options = {
         "headerToolbar": {
             "left": "today prev,next",
@@ -538,7 +537,7 @@ def mostrar_calendario():
         },
         "initialView": "dayGridMonth",
         "locale": "es",          
-        "height": 800,  # Altura fija para evitar cortes
+        "height": 800,  
         "navLinks": True,
         "selectable": True,
         "editable": False,
@@ -791,14 +790,14 @@ def mostrar_admin_users():
 # --- 9. MAIN LOOP ---
 def main():
     if not st.session_state.user:
-        # LOGIN (Logo 50% centrado)
+        # LOGIN (Logo 50% centrado con wrapper para mobile)
         c_espacio1, c_central, c_espacio2 = st.columns([1, 2, 1])
         with c_central:
-            # Sub-columnas para forzar centrado y tamaño del logo
-            cs1, cs2, cs3 = st.columns([1, 2, 1])
-            with cs2:
-                try: st.image("logo-taescorer.png", use_container_width=True)
-                except: st.title("Taescorer")
+            # Envolvemos el logo en un contenedor HTML para el CSS responsive
+            st.markdown('<div class="login-logo-box">', unsafe_allow_html=True)
+            try: st.image("logo-taescorer.png", use_container_width=True)
+            except: st.title("Taescorer")
+            st.markdown('</div>', unsafe_allow_html=True)
             
             t1, t2 = st.tabs(["Entrar", "Crear Cuenta"])
             with t1:
@@ -844,7 +843,6 @@ def main():
             if st.button("Salir", use_container_width=True): logout()
 
             # --- ZONA DE ADMINISTRADOR ---
-            # Solo visible para tu correo
             if st.session_state.user.email == "williamgazzu@gmail.com": 
                 st.divider()
                 st.caption("🔒 Admin Zone")
