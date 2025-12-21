@@ -67,7 +67,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (LIMPIEZA TOTAL + MENÚ CORREGIDO) ---
+# --- 4. CSS MAESTRO (CORRECCIÓN FINAL MENU MÓVIL) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -78,79 +78,88 @@ st.markdown(f"""
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
     /* ============================================================
-       LIMPIEZA EXTREMA (Adiós Iconos y "Manage App")
+       1. LIMPIEZA DE ICONOS STREAMLIT (Toolbar, GitHub, Manage App)
        ============================================================ */
     
-    /* 1. Ocultar la Toolbar superior (Share, Star, GitHub, Edit) */
+    /* Ocultar la Toolbar superior derecha (donde salen los iconos de GitHub, fork, etc) */
     [data-testid="stToolbar"] {{
         display: none !important;
         visibility: hidden !important;
+        height: 0 !important;
     }}
 
-    /* 2. Ocultar elementos de acción del header (Puntos suspensivos, deploy) */
-    [data-testid="stHeaderActionElements"] {{
+    /* Ocultar decoraciones del header (la linea de colores) */
+    [data-testid="stDecoration"] {{
         display: none !important;
     }}
 
-    /* 3. Ocultar el botón "Manage app" y badges del footer */
+    /* Ocultar el botón "Manage app" y badges del footer */
     .viewerBadge_container__1QSob, 
     [class^="viewerBadge_"], 
     [data-testid="stStatusWidget"] {{
         display: none !important;
-        visibility: hidden !important;
     }}
 
-    /* 4. Ocultar footer general y decoraciones */
-    footer {{ display: none !important; }}
-    #MainMenu {{ display: none !important; }}
-    .stDeployButton {{ display: none !important; }}
-    [data-testid="stDecoration"] {{ display: none !important; }}
+    /* Ocultar footer general */
+    footer, #MainMenu, .stDeployButton {{ display: none !important; }}
 
     /* ============================================================
-       HEADER NATIVO: TRANSPARENTE
+       2. CONTROL DEL MENU (Desktop Fijo / Mobile Flotante)
        ============================================================ */
+    
+    /* HEADER TRANSPARENTE (Para que no tape clicks, pero exista) */
     header[data-testid="stHeader"] {{
         background: transparent !important;
         pointer-events: none !important;
-        height: 0px !important;
     }}
 
-    /* ============================================================
-       COMPORTAMIENTO ESCRITORIO (Pantallas grandes > 992px)
-       ============================================================ */
+    /* >>> CASO ESCRITORIO (Pantallas grandes) <<< */
     @media (min-width: 992px) {{
+        /* Ocultar el botón de cerrar sidebar interno */
         [data-testid="stSidebar"] button[kind="header"] {{ display: none !important; }}
+        
+        /* Ocultar el botón hamburguesa (porque el menú ya está fijo) */
         [data-testid="stSidebarCollapsedControl"] {{ display: none !important; }}
+        
+        /* Ajustar padding superior */
         .block-container {{ padding-top: 2rem !important; }}
     }}
 
-    /* ============================================================
-       COMPORTAMIENTO MÓVIL (Pantallas pequeñas < 992px)
-       ============================================================ */
+    /* >>> CASO MÓVIL (Pantallas pequeñas) <<< */
     @media (max-width: 991px) {{
-        [data-testid="stSidebarCollapsedControl"] {{
+        /* FORZAR LA APARICIÓN DEL BOTÓN HAMBURGUESA */
+        /* Usamos selectores muy específicos para revivirlo si stToolbar lo ocultó */
+        div[data-testid="stSidebarCollapsedControl"] {{
             display: block !important;
+            visibility: visible !important;
             pointer-events: auto !important;
+            
+            /* Posición Fija (flotante) */
             position: fixed !important;
-            top: 10px !important;
-            left: 10px !important;
-            z-index: 999999 !important;
-            background-color: rgba(31, 32, 43, 0.8) !important;
+            top: 15px !important;
+            left: 15px !important;
+            z-index: 1000001 !important; /* Z-index altísimo para estar sobre todo */
+            
+            /* Estilo del botón */
+            background-color: rgba(31, 32, 43, 0.9) !important;
             border: 1px solid rgba(255,255,255,0.2) !important;
             border-radius: 8px !important;
             width: 44px !important;
             height: 44px !important;
             color: white !important;
         }}
+        
+        /* Asegurar que el icono SVG sea blanco */
         [data-testid="stSidebarCollapsedControl"] svg {{
             fill: white !important;
             stroke: white !important;
         }}
+
         .block-container {{ padding-top: 4rem !important; }}
     }}
 
     /* =========================================
-       ESTILOS VISUALES DEL SIDEBAR
+       3. ESTILOS VISUALES DEL SIDEBAR
        ========================================= */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
         display: block !important;
@@ -188,7 +197,7 @@ st.markdown(f"""
 
     div[role="radiogroup"] {{ display: none !important; }}
 
-    /* HEADER PERSONALIZADO */
+    /* HEADER PERSONALIZADO (Solo visual) */
     .custom-header {{
         position: fixed;
         top: 0;
