@@ -23,14 +23,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNCIÓN AUXILIAR: LOGO A BASE64 (Para el Header HTML) ---
+# --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as image_file:
             encoded = base64.b64encode(image_file.read()).decode()
         return f"data:image/png;base64,{encoded}"
     except:
-        return "" # Si no encuentra la imagen, no rompe la app
+        return "" 
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
@@ -67,59 +67,64 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS: MAESTRO (ARREGLOS VISUALES) ---
+# --- 4. CSS MAESTRO (SOLUCIÓN MENU + LOGO + LIMPIEZA) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
     /* =========================================
-       1. LIMPIEZA DE INTERFAZ (Adiós Logos)
-       ========================================= */
-    footer {{ display: none !important; }}
-    #MainMenu {{ display: none !important; }}
-    .stDeployButton {{ display: none !important; }}
-    [data-testid="stToolbar"] {{ display: none !important; }}
-    .viewerBadge_container__1QSob {{ display: none !important; }}
-    div[class^="viewerBadge_"] {{ display: none !important; }}
-
-    /* =========================================
-       2. TEMA OSCURO FORZADO
+       1. FONDO OSCURO FORZADO
        ========================================= */
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
     /* =========================================
-       3. HEADER Y MENÚ HAMBURGUESA
+       2. LIMPIEZA VISUAL (Adiós iconos extra)
+       ========================================= */
+    footer {{ display: none !important; }}
+    #MainMenu {{ display: none !important; }}
+    .stDeployButton {{ display: none !important; }}
+    [data-testid="stToolbar"] {{ display: none !important; }}
+    [data-testid="stDecoration"] {{ display: none !important; }}
+    [data-testid="stStatusWidget"] {{ display: none !important; }}
+    .viewerBadge_container__1QSob {{ display: none !important; }}
+    div[class^="viewerBadge_"] {{ display: none !important; }}
+
+    /* =========================================
+       3. HEADER Y MENÚ HAMBURGUESA (CRÍTICO)
        ========================================= */
     
-    /* Hacemos transparente el header nativo para ver el nuestro, 
-       pero mantenemos los eventos del ratón para el botón del menú */
+    /* El header nativo se hace transparente pero permite clicks a sus hijos (el botón) */
     header[data-testid="stHeader"] {{
         background: transparent !important;
-        pointer-events: none !important;
+        pointer-events: none !important; 
         z-index: 100000 !important;
+        height: 60px !important;
     }}
     
-    /* ESTILO DEL BOTÓN DE MENÚ (HAMBURGUESA) */
+    /* Estilo específico para el botón del menú (las 3 barras / flecha) */
     [data-testid="stSidebarCollapsedControl"] {{
-        pointer-events: auto !important; /* Permitir clic */
+        pointer-events: auto !important; /* Reactivar clic */
         display: block !important;
         color: white !important;
         background-color: transparent !important;
-        z-index: 100001 !important; /* Encima de todo */
-        position: fixed;
-        top: 15px;
-        left: 15px;
+        z-index: 100001 !important; /* Por encima de todo */
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        width: 40px !important;
+        height: 40px !important;
         border: none !important;
     }}
     
+    /* Asegurar que el icono SVG sea blanco */
     [data-testid="stSidebarCollapsedControl"] svg {{
         fill: white !important;
         stroke: white !important;
     }}
 
-    /* HEADER PERSONALIZADO FIJO */
+    /* HEADER PERSONALIZADO (El fondo negro con tu logo) */
     .custom-header {{
         position: fixed;
         top: 0;
@@ -139,11 +144,11 @@ st.markdown(f"""
         object-fit: contain;
     }}
 
-    /* Empujar contenido hacia abajo */
+    /* Empujar el contenido hacia abajo */
     .block-container {{ padding-top: 5rem !important; }}
 
     /* =========================================
-       4. LOGO LOGIN RESPONSIVE
+       4. LOGO LOGIN RESPONSIVE (50% PC / 30% MOVIL)
        ========================================= */
     .logo-login-container {{
         display: flex;
@@ -152,15 +157,17 @@ st.markdown(f"""
         margin-bottom: 20px;
     }}
     
-    .logo-login-container img {{
-        width: 50%; /* Escritorio: 50% */
-        max-width: 400px;
+    .logo-login-img {{
+        width: 50%; /* ESCRITORIO */
+        max-width: 300px;
         height: auto;
+        object-fit: contain;
     }}
 
+    /* SOLO PARA MÓVILES */
     @media (max-width: 768px) {{
-        .logo-login-container img {{
-            width: 30% !important; /* Móvil: 30% */
+        .logo-login-img {{
+            width: 30% !important; /* MÓVIL */
         }}
     }}
 
@@ -189,28 +196,18 @@ st.markdown(f"""
         z-index: 10 !important;
     }}
 
-    /* Estilos individuales */
-    /* 1. Perfil */
+    /* Botones Específicos */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
 
-    /* 2. Dashboard */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
-    
-    /* 3. Registrar */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
-    
-    /* 4. Base */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
-    
-    /* 5. Calendario */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 10px 10px !important; }}
 
-    /* 6. Salir */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
     
-    /* 7. Admin (Rojo) */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
 
@@ -386,7 +383,6 @@ def mostrar_formulario_registro():
     st.header("📝 Nuevo Torneo (Resultados)")
     st.info("Ingresa las notas y verás el cálculo final en tiempo real.")
     rivales_existentes = get_lista_rivales()
-    
     c1, c2, c3 = st.columns(3)
     nom = c1.text_input("Nombre del torneo", key="t_nombre")
     fec = c2.date_input("Fecha", date.today(), key="t_fecha")
@@ -404,20 +400,17 @@ def mostrar_formulario_registro():
         cr1, cr2 = st.columns(2)
         tr = cr1.selectbox(f"Fase {i+1}", tipos, key=f"tr_{i}")
         opcion_rival = cr2.selectbox(f"Seleccionar Rival (Ronda {i+1})", ["➕ Nuevo Rival..."] + rivales_existentes, key=f"sel_riv_{i}")
-        if opcion_rival == "➕ Nuevo Rival...": nr = cr2.text_input(f"Escribe nombre del rival", key=f"text_riv_{i}")
-        else: nr = opcion_rival
+        nr = cr2.text_input(f"Escribe nombre del rival", key=f"text_riv_{i}") if opcion_rival == "➕ Nuevo Rival..." else opcion_rival
         comentarios = st.text_area(f"Comentarios Ronda {i+1}", key=f"comm_{i}")
 
         tp1, tp2 = st.tabs(["Poomsae 1", "Poomsae 2"])
         with tp1:
             np1 = st.selectbox("Selecciona el poomsae", LISTA_POOMSAE_OFICIAL, key=f"np1_{i}")
-            st.markdown("**🔵 Mis Notas**")
             c1, c2, c3 = st.columns(3)
             mt1 = c1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt1_{i}")
             mp1 = c2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp1_{i}")
             total_yo_1 = mt1 + mp1
             c3.metric(label="Final", value=f"{total_yo_1:.2f}")
-            st.markdown("**🔴 Notas Rival**")
             rc1, rc2, rc3 = st.columns(3)
             rt1 = rc1.number_input("Rival nota técnica", 0.0, 4.0, step=0.01, key=f"rt1_{i}")
             rp1 = rc2.number_input("Rival nota presentación", 0.0, 6.0, step=0.01, key=f"rp1_{i}")
@@ -425,13 +418,11 @@ def mostrar_formulario_registro():
             rc3.metric(label="Final", value=f"{total_riv_1:.2f}")
         with tp2:
             np2 = st.selectbox("Selecciona el poomsae", LISTA_POOMSAE_OFICIAL, key=f"np2_{i}")
-            st.markdown("**🔵 Mis Notas**")
             c1, c2, c3 = st.columns(3)
             mt2 = c1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt2_{i}")
             mp2 = c2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp2_{i}")
             total_yo_2 = mt2 + mp2
             c3.metric(label="Final", value=f"{total_yo_2:.2f}")
-            st.markdown("**🔴 Notas Rival**")
             rc1, rc2, rc3 = st.columns(3)
             rt2 = rc1.number_input("Rival nota técnica", 0.0, 4.0, step=0.01, key=f"rt2_{i}")
             rp2 = rc2.number_input("Rival nota presentación", 0.0, 6.0, step=0.01, key=f"rp2_{i}")
@@ -570,7 +561,7 @@ def mostrar_calendario():
         },
         "initialView": "dayGridMonth",
         "locale": "es",          
-        "height": 800,
+        "height": 800,  
         "navLinks": True,
         "selectable": True,
         "editable": False,
@@ -827,10 +818,12 @@ def main():
         # LOGIN (Logo con wrapper responsive: 50% Desktop / 30% Mobile)
         c_espacio1, c_central, c_espacio2 = st.columns([1, 2, 1])
         with c_central:
-            st.markdown('<div class="logo-login-container">', unsafe_allow_html=True)
-            try: st.image("logo-taescorer.png", use_container_width=True)
-            except: st.title("Taescorer")
-            st.markdown('</div>', unsafe_allow_html=True)
+            # Envolvemos el logo en un contenedor HTML puro para tener control total del CSS
+            st.markdown(f'''
+                <div class="logo-login-html">
+                    <img src="{logo_b64}" class="logo-login-img">
+                </div>
+            ''', unsafe_allow_html=True)
             
             t1, t2 = st.tabs(["Entrar", "Crear Cuenta"])
             with t1:
@@ -876,7 +869,6 @@ def main():
             if st.button("Salir", use_container_width=True): logout()
 
             # --- ZONA DE ADMINISTRADOR ---
-            # Solo visible para tu correo
             if st.session_state.user.email == "williamgazzu@gmail.com": 
                 st.divider()
                 st.caption("🔒 Admin Zone")
