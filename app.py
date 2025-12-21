@@ -67,7 +67,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (CORRECCIÓN FINAL MENU MÓVIL) ---
+# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA: MENU + CLEANUP + BOTONES CON BORDE) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -81,66 +81,42 @@ st.markdown(f"""
        1. LIMPIEZA DE ICONOS STREAMLIT (Toolbar, GitHub, Manage App)
        ============================================================ */
     
-    /* Ocultar la Toolbar superior derecha (donde salen los iconos de GitHub, fork, etc) */
     [data-testid="stToolbar"] {{
         display: none !important;
         visibility: hidden !important;
         height: 0 !important;
     }}
-
-    /* Ocultar decoraciones del header (la linea de colores) */
-    [data-testid="stDecoration"] {{
-        display: none !important;
-    }}
-
-    /* Ocultar el botón "Manage app" y badges del footer */
-    .viewerBadge_container__1QSob, 
-    [class^="viewerBadge_"], 
-    [data-testid="stStatusWidget"] {{
-        display: none !important;
-    }}
-
-    /* Ocultar footer general */
+    [data-testid="stDecoration"] {{ display: none !important; }}
+    .viewerBadge_container__1QSob, [class^="viewerBadge_"], [data-testid="stStatusWidget"] {{ display: none !important; }}
     footer, #MainMenu, .stDeployButton {{ display: none !important; }}
 
     /* ============================================================
        2. CONTROL DEL MENU (Desktop Fijo / Mobile Flotante)
        ============================================================ */
     
-    /* HEADER TRANSPARENTE (Para que no tape clicks, pero exista) */
     header[data-testid="stHeader"] {{
         background: transparent !important;
         pointer-events: none !important;
+        height: 0px !important;
     }}
 
-    /* >>> CASO ESCRITORIO (Pantallas grandes) <<< */
+    /* ESCRITORIO (> 992px) */
     @media (min-width: 992px) {{
-        /* Ocultar el botón de cerrar sidebar interno */
         [data-testid="stSidebar"] button[kind="header"] {{ display: none !important; }}
-        
-        /* Ocultar el botón hamburguesa (porque el menú ya está fijo) */
         [data-testid="stSidebarCollapsedControl"] {{ display: none !important; }}
-        
-        /* Ajustar padding superior */
         .block-container {{ padding-top: 2rem !important; }}
     }}
 
-    /* >>> CASO MÓVIL (Pantallas pequeñas) <<< */
+    /* MÓVIL (< 991px) */
     @media (max-width: 991px) {{
-        /* FORZAR LA APARICIÓN DEL BOTÓN HAMBURGUESA */
-        /* Usamos selectores muy específicos para revivirlo si stToolbar lo ocultó */
         div[data-testid="stSidebarCollapsedControl"] {{
             display: block !important;
             visibility: visible !important;
             pointer-events: auto !important;
-            
-            /* Posición Fija (flotante) */
             position: fixed !important;
             top: 15px !important;
             left: 15px !important;
-            z-index: 1000001 !important; /* Z-index altísimo para estar sobre todo */
-            
-            /* Estilo del botón */
+            z-index: 1000001 !important;
             background-color: rgba(31, 32, 43, 0.9) !important;
             border: 1px solid rgba(255,255,255,0.2) !important;
             border-radius: 8px !important;
@@ -148,18 +124,15 @@ st.markdown(f"""
             height: 44px !important;
             color: white !important;
         }}
-        
-        /* Asegurar que el icono SVG sea blanco */
         [data-testid="stSidebarCollapsedControl"] svg {{
             fill: white !important;
             stroke: white !important;
         }}
-
         .block-container {{ padding-top: 4rem !important; }}
     }}
 
     /* =========================================
-       3. ESTILOS VISUALES DEL SIDEBAR
+       3. ESTILOS VISUALES DEL SIDEBAR (BOTONES MARCADOS)
        ========================================= */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
         display: block !important;
@@ -168,8 +141,9 @@ st.markdown(f"""
     }}
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
     
+    /* ESTILO BASE DE BOTONES - AHORA CON BORDE */
     section[data-testid="stSidebar"] button {{
-        border: none !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important; /* BORDE AÑADIDO */
         color: white !important;
         font-weight: 600 !important;
         box-shadow: none !important;
@@ -178,6 +152,7 @@ st.markdown(f"""
     }}
     section[data-testid="stSidebar"] button:hover {{
         filter: brightness(1.2) !important;
+        border-color: rgba(255, 255, 255, 0.6) !important; /* Borde más brillante al pasar mouse */
     }}
 
     /* Botones Específicos */
