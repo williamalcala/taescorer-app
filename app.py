@@ -20,7 +20,7 @@ st.set_page_config(
     page_title="Taescorer", 
     page_icon="favicon.png", 
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed" # La barra inicia cerrada, pero ahora el botón para abrirla funcionará
 )
 
 # --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
@@ -80,48 +80,46 @@ st.markdown(f"""
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
     /* =========================================
-       2. LIMPIEZA VISUAL (Adiós iconos extra)
+       2. LIMPIEZA VISUAL
        ========================================= */
     footer {{ display: none !important; }}
     #MainMenu {{ display: none !important; }}
     .stDeployButton {{ display: none !important; }}
-    [data-testid="stToolbar"] {{ display: none !important; }}
     [data-testid="stDecoration"] {{ display: none !important; }}
     [data-testid="stStatusWidget"] {{ display: none !important; }}
     .viewerBadge_container__1QSob {{ display: none !important; }}
-    div[class^="viewerBadge_"] {{ display: none !important; }}
-
+    
     /* =========================================
-       3. HEADER Y MENÚ HAMBURGUESA (CRÍTICO)
+       3. HEADER Y MENÚ HAMBURGUESA (CORREGIDO)
        ========================================= */
     
-    /* El header nativo se hace transparente pero permite clicks a sus hijos (el botón) */
+    /* El header nativo transparente */
     header[data-testid="stHeader"] {{
         background: transparent !important;
-        pointer-events: none !important; 
-        z-index: 100000 !important;
+        z-index: 100 !important;
         height: 60px !important;
+        /* IMPORTANTE: Quitamos pointer-events: none para que los botones funcionen */
     }}
     
-    /* Estilo específico para el botón del menú (las 3 barras / flecha) */
+    /* Botón del Menú (Hamburguesa/Flecha) - FORZAR VISIBILIDAD */
     [data-testid="stSidebarCollapsedControl"] {{
-        pointer-events: auto !important; /* Reactivar clic */
         display: block !important;
-        color: white !important;
-        background-color: transparent !important;
-        z-index: 100001 !important; /* Por encima de todo */
+        color: #ffffff !important;
+        background-color: rgba(31, 32, 43, 0.5) !important; /* Fondo sutil para contraste */
+        border-radius: 4px !important;
+        z-index: 999999 !important; /* Encima de todo, incluso del header personalizado */
         position: fixed !important;
-        top: 10px !important;
-        left: 10px !important;
+        top: 15px !important;
+        left: 15px !important;
         width: 40px !important;
         height: 40px !important;
-        border: none !important;
     }}
     
     /* Asegurar que el icono SVG sea blanco */
-    [data-testid="stSidebarCollapsedControl"] svg {{
+    [data-testid="stSidebarCollapsedControl"] svg, 
+    [data-testid="stSidebarCollapsedControl"] i {{
         fill: white !important;
-        stroke: white !important;
+        color: white !important;
     }}
 
     /* HEADER PERSONALIZADO (El fondo negro con tu logo) */
@@ -136,9 +134,10 @@ st.markdown(f"""
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 9999;
+        z-index: 9999; /* Menor que el botón del menú (999999) */
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }}
+    
     .custom-header img {{
         height: 35px;
         object-fit: contain;
@@ -148,7 +147,7 @@ st.markdown(f"""
     .block-container {{ padding-top: 5rem !important; }}
 
     /* =========================================
-       4. LOGO LOGIN RESPONSIVE (50% PC / 30% MOVIL)
+       4. LOGO LOGIN RESPONSIVE
        ========================================= */
     .logo-login-container {{
         display: flex;
@@ -158,16 +157,20 @@ st.markdown(f"""
     }}
     
     .logo-login-img {{
-        width: 50%; /* ESCRITORIO */
+        width: 50%;
         max-width: 300px;
         height: auto;
         object-fit: contain;
     }}
 
-    /* SOLO PARA MÓVILES */
     @media (max-width: 768px) {{
         .logo-login-img {{
-            width: 30% !important; /* MÓVIL */
+            width: 30% !important;
+        }}
+        /* Ajuste fino para botón menú en móvil si es necesario */
+        [data-testid="stSidebarCollapsedControl"] {{
+            top: 10px !important;
+            left: 10px !important;
         }}
     }}
 
@@ -560,7 +563,7 @@ def mostrar_calendario():
             "list": "Lista", "prev": "Ant", "next": "Sig"
         },
         "initialView": "dayGridMonth",
-        "locale": "es",          
+        "locale": "es",           
         "height": 800,  
         "navLinks": True,
         "selectable": True,
