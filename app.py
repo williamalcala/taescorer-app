@@ -7,6 +7,7 @@ import plotly.express as px
 from io import BytesIO
 from PIL import Image
 from streamlit_cropper import st_cropper
+import base64 # <--- NUEVO: Necesario para el logo en el header
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -14,13 +15,25 @@ try:
 except ImportError:
     calendar = None
 
-# --- 1. CONFIGURACIÓN INICIAL (CON FAVICON) ---
+# --- 1. CONFIGURACIÓN INICIAL ---
 st.set_page_config(
     page_title="Taescorer", 
     page_icon="favicon.png", 
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed" # En mobile se ve mejor si arranca cerrado
 )
+
+# --- FUNCIÓN AUXILIAR PARA LOGO EN BASE64 ---
+def get_image_base64(path):
+    try:
+        with open(path, "rb") as image_file:
+            encoded = base64.b64encode(image_file.read()).decode()
+        return f"data:image/png;base64,{encoded}"
+    except:
+        return ""
+
+# Cargar el logo para usarlo en el header
+logo_b64 = get_image_base64("logo-taescorer.png")
 
 # --- 2. CONEXIÓN BASE DE DATOS ---
 @st.cache_resource
@@ -55,103 +68,133 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS: DISEÑO ROBUSTO, LIMPIO Y SIN BARRA SUPERIOR ---
-st.markdown("""
+# --- 4. CSS: DISEÑO MOBILE, HEADER FIJO Y MODO OSCURO FORZADO ---
+st.markdown(f"""
 <style>
-    html, body, [class*="css"] { font-family: 'Helvetica', 'Inter', sans-serif !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
-    /* --- OCULTAR BARRA SUPERIOR Y FOOTER --- */
-    header[data-testid="stHeader"] {
-        visibility: hidden;
-        height: 0px;
-    }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    div[data-testid="stToolbar"] {visibility: hidden;}
+    /* --- 1. FORZAR FONDO OSCURO SIEMPRE (#1f202b) --- */
+    .stApp {{
+        background-color: #1f202b !important;
+    }}
+    /* Asegurar que modales y otros contenedores también sean oscuros */
+    div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
     
-    .block-container {
-        padding-top: 1rem !important;
-    }
+    /* --- 2. HEADER FIJO EN EL TOP (NAVBAR) --- */
+    /* Ocultamos el header nativo de Streamlit para poner el nuestro */
+    header[data-testid="stHeader"] {{
+        background-color: transparent !important;
+        z-index: 1 !important; /* Para que el botón de hamburguesa nativo siga funcionando */
+    }}
+    
+    /* Nuestro Navbar Personalizado */
+    .custom-header {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 60px; /* Altura del header */
+        background-color: #1f202b; /* Mismo color de fondo */
+        border-bottom: 1px solid #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }}
+    
+    .custom-header img {{
+        height: 40px; /* Tamaño del logo en el header */
+        object-fit: contain;
+    }}
 
-    /* 1. CENTRAR LOGO SIDEBAR */
-    section[data-testid="stSidebar"] div[data-testid="stImage"] img {
+    /* Empujar el contenido hacia abajo para que el header no lo tape */
+    .block-container {{
+        padding-top: 5rem !important; 
+    }}
+
+    /* --- 3. DISEÑO DEL SIDEBAR (BOTONES UNIDOS) --- */
+    section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
         display: block !important;
         margin-left: auto !important;
         margin-right: auto !important;
         width: 50% !important;
         align-self: center !important;
-    }
-
-    /* 2. ELIMINAR GAP DEL SIDEBAR */
-    section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {
+    }}
+    
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{
         gap: 0rem !important;
-    }
+    }}
 
-    /* 3. ESTILO BASE BOTONES */
-    section[data-testid="stSidebar"] button {
+    section[data-testid="stSidebar"] button {{
         border: none !important;
         color: white !important;
         font-weight: 600 !important;
         box-shadow: none !important;
         transition: filter 0.2s !important;
-    }
-    section[data-testid="stSidebar"] button:hover {
+    }}
+    section[data-testid="stSidebar"] button:hover {{
         filter: brightness(1.15) !important;
         z-index: 10 !important;
-    }
+    }}
 
-    /* --- BLOQUES DE BOTONES --- */
-
-    /* PERFIL (Separado) */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) { padding-bottom: 20px !important; }
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {
+    /* ESTILOS DE LOS BOTONES DEL MENÚ */
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{
         background-color: #2b2c35 !important;
         border-radius: 8px !important;
-    }
+    }}
 
-    /* BLOQUE CENTRAL UNIDO */
-    /* Dashboard (Cabeza) */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{
         background-color: #0bb4fa !important;
         border-radius: 10px 10px 0 0 !important;
         margin-bottom: 1px !important;
-    }
-    /* Registrar (Cuerpo) */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {
+    }}
+    
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{
         background-color: #00f9b1 !important;
         color: #1e1e1e !important;
         border-radius: 0 !important;
         margin-bottom: 1px !important;
-    }
-    /* Base Torneos (Cuerpo) */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {
+    }}
+    
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{
         background-color: #3a2783 !important;
         border-radius: 0 !important;
         margin-bottom: 1px !important;
-    }
-    /* Calendario (Pie) */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {
+    }}
+    
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{
         background-color: #ff9f1c !important;
         border-radius: 0 0 10px 10px !important;
-    }
+    }}
 
-    /* SALIR (Separado) */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) { padding-top: 40px !important; }
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{
         background-color: #2b2c35 !important;
         border-radius: 8px !important;
-    }
+    }}
     
-    /* ADMIN (Si aparece) */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) { padding-top: 10px !important; }
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{
         background-color: #581818 !important;
         border-radius: 8px !important;
         border: 1px solid #ff4b4b !important;
-    }
+    }}
 
-    div[role="radiogroup"] { display: none !important; }
+    /* OCULTAR ELEMENTOS INNECESARIOS */
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    div[data-testid="stToolbar"] {{visibility: hidden;}}
+    div[role="radiogroup"] {{ display: none !important; }}
+
 </style>
+
+<div class="custom-header">
+    <img src="{logo_b64}" alt="Taescorer Logo">
+</div>
+
 """, unsafe_allow_html=True)
 
 # --- GESTIÓN DE SESIÓN ---
@@ -159,23 +202,21 @@ if 'user' not in st.session_state: st.session_state.user = None
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 if 'page_selection' not in st.session_state: st.session_state.page_selection = "Dashboard"
 
-# --- 5. FUNCIONES DE LÓGICA (CON LOADERS AÑADIDOS) ---
+# --- 5. FUNCIONES DE LÓGICA (CON LOADERS) ---
 def login(email, password):
     if not supabase: return
     try:
-        # AGREGADO: Loader visual mientras carga
         with st.spinner("🥋 Entrando al dojang..."):
             response = supabase.auth.sign_in_with_password({"email": email, "password": password})
             st.session_state.user = response.user
             cargar_perfil()
-            time.sleep(0.5) # Pequeña pausa para que se vea el efecto
+            time.sleep(0.5)
             st.rerun()
     except Exception as e: st.error(f"Error: {e}")
 
 def sign_up(email, password, full_name):
     if not supabase: return
     try:
-        # AGREGADO: Loader visual mientras carga
         with st.spinner("📝 Registrando atleta..."):
             response = supabase.auth.sign_up({"email": email, "password": password, "options": {"data": {"full_name": full_name}}})
             st.session_state.user = response.user
@@ -440,23 +481,22 @@ def mostrar_calendario():
 
             if st.button("💾 Guardar Cambios en Agenda", type="primary"):
                 try:
-                    with st.spinner("Sincronizando agenda..."):
-                        ids_originales = [row['id'] for row in eventos_db]
-                        ids_finales = []
-                        for index, row in edited_df.iterrows():
-                            if pd.notna(row.get('id')):
-                                ids_finales.append(row['id'])
-                                supabase.table("agenda").update({
-                                    "nombre": row['nombre'], "fecha_inicio": str(row['fecha_inicio']), 
-                                    "fecha_fin": str(row['fecha_fin']), "estatus": row['estatus'], 
-                                    "comentarios": row['comentarios']
-                                }).eq("id", row['id']).execute()
-                            else:
-                                guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
-                        
-                        for old_id in ids_originales:
-                            if old_id not in ids_finales:
-                                supabase.table("agenda").delete().eq("id", old_id).execute()
+                    ids_originales = [row['id'] for row in eventos_db]
+                    ids_finales = []
+                    for index, row in edited_df.iterrows():
+                        if pd.notna(row.get('id')):
+                            ids_finales.append(row['id'])
+                            supabase.table("agenda").update({
+                                "nombre": row['nombre'], "fecha_inicio": str(row['fecha_inicio']), 
+                                "fecha_fin": str(row['fecha_fin']), "estatus": row['estatus'], 
+                                "comentarios": row['comentarios']
+                            }).eq("id", row['id']).execute()
+                        else:
+                            guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
+                    
+                    for old_id in ids_originales:
+                        if old_id not in ids_finales:
+                            supabase.table("agenda").delete().eq("id", old_id).execute()
 
                     st.success("Agenda actualizada correctamente.")
                     time.sleep(1)
@@ -551,21 +591,20 @@ def mostrar_historial_editor():
         
         if st.button("💾 Guardar Cambios", type="primary"):
             try:
-                with st.spinner("Guardando cambios..."):
-                    for index, row in edited_df.iterrows():
-                        mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
-                        riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
-                        res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
-                        update_data = {
-                            "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
-                            "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
-                            "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
-                            "comentarios": row.get('comentarios', '')
-                        }
-                        supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
-                    st.success("✅ Datos actualizados correctamente.")
-                    time.sleep(1)
-                    st.rerun()
+                for index, row in edited_df.iterrows():
+                    mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
+                    riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
+                    res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
+                    update_data = {
+                        "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
+                        "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
+                        "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
+                        "comentarios": row.get('comentarios', '')
+                    }
+                    supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
+                st.success("✅ Datos actualizados correctamente.")
+                time.sleep(1)
+                st.rerun()
             except Exception as e: st.error(f"Error al actualizar: {e}")
     except Exception as e: st.error(f"Error cargando historial: {e}")
 
