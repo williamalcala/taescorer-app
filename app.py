@@ -12,32 +12,44 @@ import streamlit as st
 
 # ... tus otros imports ...
 
-hide_specific_elements = """
+# --- CÓDIGO FINAL ---
+hide_elements = """
     <style>
-    /* Ocultar el menú principal (las 3 rayitas de la derecha) */
-    #MainMenu {visibility: hidden;}
-    
-    /* Ocultar el pie de página */
-    footer {visibility: hidden;}
-    
-    /* Ocultar los elementos de acción del encabezado (donde suelen estar Fork, GitHub, etc.) */
+    /* 1. Esto elimina el botón "Fork", GitHub y las opciones de la derecha */
+    .stAppDeployButton, 
+    [data-testid="stToolbar"], 
     [data-testid="stHeaderActionElements"] {
-        display: none !important;
-    }
-
-    /* Ocultar la barra de herramientas completa de la derecha */
-    [data-testid="stToolbar"] {
         visibility: hidden !important;
         display: none !important;
     }
-    
-    /* En algunos casos, el botón de deploy tiene su propia clase */
-    .stAppDeployButton {
+
+    /* 2. Esto elimina la barra de colores arcoíris de arriba */
+    [data-testid="stDecoration"] {
+        visibility: hidden !important;
         display: none !important;
+    }
+
+    /* 3. Esto elimina el pie de página */
+    footer {
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* 4. AQUÍ ESTÁ LA CLAVE: 
+       Hacemos el fondo del encabezado transparente para que no tape nada,
+       pero NO lo ocultamos con "display: none" para que el botón pueda existir. */
+    header {
+        background: transparent !important;
+    }
+    
+    /* 5. Forzamos la visibilidad del botón del menú (la flechita) */
+    [data-testid="collapsedControl"] {
+        visibility: visible !important;
+        display: block !important;
     }
     </style>
 """
-st.markdown(hide_specific_elements, unsafe_allow_html=True)
+st.markdown(hide_elements, unsafe_allow_html=True)
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -911,6 +923,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
