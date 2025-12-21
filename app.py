@@ -23,14 +23,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNCIÓN AUXILIAR PARA LOGO ---
+# --- FUNCIÓN AUXILIAR: LOGO A BASE64 (Para el Header HTML) ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as image_file:
             encoded = base64.b64encode(image_file.read()).decode()
         return f"data:image/png;base64,{encoded}"
     except:
-        return ""
+        return "" # Si no encuentra la imagen, no rompe la app
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
@@ -67,48 +67,59 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS: SOLUCIÓN COMPLETA (HEADER, MENU, LOGO MOBILE, SIN ICONOS EXTRAS) ---
+# --- 4. CSS: MAESTRO (ARREGLOS VISUALES) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
-    /* --- A. FONDO OSCURO FORZADO --- */
+    /* =========================================
+       1. LIMPIEZA DE INTERFAZ (Adiós Logos)
+       ========================================= */
+    footer {{ display: none !important; }}
+    #MainMenu {{ display: none !important; }}
+    .stDeployButton {{ display: none !important; }}
+    [data-testid="stToolbar"] {{ display: none !important; }}
+    .viewerBadge_container__1QSob {{ display: none !important; }}
+    div[class^="viewerBadge_"] {{ display: none !important; }}
+
+    /* =========================================
+       2. TEMA OSCURO FORZADO
+       ========================================= */
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* --- B. LIMPIEZA DE INTERFAZ (Adiós GitHub, Corona, Toolbar) --- */
-    [data-testid="stToolbar"] {{ display: none !important; }} 
-    .stDeployButton {{ display: none !important; }}
-    #MainMenu {{ display: none !important; }}
-    footer {{ display: none !important; }}
-    .viewerBadge_container__1QSob {{ display: none !important; }} /* Oculta badge de Streamlit Cloud */
+    /* =========================================
+       3. HEADER Y MENÚ HAMBURGUESA
+       ========================================= */
     
-    /* Ocultar la línea decorativa de colores arriba */
+    /* Hacemos transparente el header nativo para ver el nuestro, 
+       pero mantenemos los eventos del ratón para el botón del menú */
     header[data-testid="stHeader"] {{
         background: transparent !important;
-        box-shadow: none !important;
+        pointer-events: none !important;
+        z-index: 100000 !important;
     }}
-    header[data-testid="stHeader"] > div:first-child {{ display: none !important; }}
-
-    /* --- C. MENÚ HAMBURGUESA (El botón de barras) --- */
-    /* Lo hacemos visible, blanco y lo ponemos encima del header fijo */
-    button[kind="header"] {{
-        visibility: visible !important;
+    
+    /* ESTILO DEL BOTÓN DE MENÚ (HAMBURGUESA) */
+    [data-testid="stSidebarCollapsedControl"] {{
+        pointer-events: auto !important; /* Permitir clic */
+        display: block !important;
         color: white !important;
-        z-index: 99999 !important; /* Capa más alta */
+        background-color: transparent !important;
+        z-index: 100001 !important; /* Encima de todo */
         position: fixed;
-        top: 12px; 
+        top: 15px;
         left: 15px;
-        background: transparent !important;
         border: none !important;
     }}
-    button[kind="header"]:hover {{
-        background: rgba(255,255,255,0.1) !important;
-        color: #0bb4fa !important;
+    
+    [data-testid="stSidebarCollapsedControl"] svg {{
+        fill: white !important;
+        stroke: white !important;
     }}
 
-    /* --- D. HEADER PERSONALIZADO FIJO --- */
+    /* HEADER PERSONALIZADO FIJO */
     .custom-header {{
         position: fixed;
         top: 0;
@@ -118,9 +129,9 @@ st.markdown(f"""
         background-color: #1f202b;
         border-bottom: 1px solid #333;
         display: flex;
-        justify-content: center; /* Logo al centro */
+        justify-content: center;
         align-items: center;
-        z-index: 9990; /* Debajo del botón hamburguesa pero encima del contenido */
+        z-index: 9999;
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }}
     .custom-header img {{
@@ -128,29 +139,34 @@ st.markdown(f"""
         object-fit: contain;
     }}
 
-    /* Empujar contenido abajo */
+    /* Empujar contenido hacia abajo */
     .block-container {{ padding-top: 5rem !important; }}
 
-    /* --- E. LOGO LOGIN RESPONSIVE --- */
-    /* En PC se ve normal, en celular (max-width 768px) se reduce al 50% */
-    .login-logo-box img {{
-        width: 100%; /* Default PC */
-        max-width: 400px;
+    /* =========================================
+       4. LOGO LOGIN RESPONSIVE
+       ========================================= */
+    .logo-login-container {{
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        margin-bottom: 20px;
     }}
     
+    .logo-login-container img {{
+        width: 50%; /* Escritorio: 50% */
+        max-width: 400px;
+        height: auto;
+    }}
+
     @media (max-width: 768px) {{
-        .login-logo-box {{
-            display: flex;
-            justify-content: center;
-        }}
-        .login-logo-box img {{
-            width: 50% !important; /* 50% en Mobile */
-            margin-top: 20px;
-            margin-bottom: 10px;
+        .logo-login-container img {{
+            width: 30% !important; /* Móvil: 30% */
         }}
     }}
 
-    /* --- F. SIDEBAR Y BOTONES (TU DISEÑO INTOCABLE) --- */
+    /* =========================================
+       5. SIDEBAR (BOTONES UNIDOS)
+       ========================================= */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
         display: block !important;
         margin-left: auto !important;
@@ -166,24 +182,35 @@ st.markdown(f"""
         font-weight: 600 !important;
         box-shadow: none !important;
         width: 100% !important;
+        transition: all 0.2s !important;
     }}
     section[data-testid="stSidebar"] button:hover {{
         filter: brightness(1.15) !important;
         z-index: 10 !important;
     }}
 
-    /* COLORES BOTONES */
+    /* Estilos individuales */
+    /* 1. Perfil */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
 
+    /* 2. Dashboard */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
+    
+    /* 3. Registrar */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
+    
+    /* 4. Base */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
+    
+    /* 5. Calendario */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 10px 10px !important; }}
 
+    /* 6. Salir */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
     
+    /* 7. Admin (Rojo) */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
 
@@ -192,7 +219,7 @@ st.markdown(f"""
 </style>
 
 <div class="custom-header">
-    <img src="{logo_b64}" alt="Logo">
+    <img src="{logo_b64}" alt="Taescorer">
 </div>
 """, unsafe_allow_html=True)
 
@@ -201,7 +228,10 @@ if 'user' not in st.session_state: st.session_state.user = None
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 if 'page_selection' not in st.session_state: st.session_state.page_selection = "Dashboard"
 
-# --- 5. FUNCIONES DE LÓGICA (CON LOADERS) ---
+# ==========================================
+# 5. FUNCIONES DE LÓGICA (COMPLETAS)
+# ==========================================
+
 def login(email, password):
     if not supabase: return
     try:
@@ -324,7 +354,10 @@ def determinar_lugar(row):
     elif "4tos" in ronda: return "5to - 8vo Lugar"
     else: return "Participación"
 
-# --- 6. PANTALLAS ---
+# ==========================================
+# 6. PANTALLAS (VISUALES)
+# ==========================================
+
 def mostrar_perfil():
     st.header("👤 Completar Perfil")
     p = st.session_state.perfil if st.session_state.perfil else {}
@@ -350,7 +383,7 @@ def mostrar_perfil():
             if st.form_submit_button("Guardar"): actualizar_perfil({"nombre": n, "edad": e, "categoria": cat, "grado": gr, "genero": gen}, img_bytes)
 
 def mostrar_formulario_registro():
-    st.header("📝 Nuevo Torneo (Registro de Resultados)")
+    st.header("📝 Nuevo Torneo (Resultados)")
     st.info("Ingresa las notas y verás el cálculo final en tiempo real.")
     rivales_existentes = get_lista_rivales()
     
@@ -537,7 +570,7 @@ def mostrar_calendario():
         },
         "initialView": "dayGridMonth",
         "locale": "es",          
-        "height": 800,  
+        "height": 800,
         "navLinks": True,
         "selectable": True,
         "editable": False,
@@ -590,20 +623,21 @@ def mostrar_historial_editor():
         
         if st.button("💾 Guardar Cambios", type="primary"):
             try:
-                for index, row in edited_df.iterrows():
-                    mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
-                    riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
-                    res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
-                    update_data = {
-                        "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
-                        "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
-                        "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
-                        "comentarios": row.get('comentarios', '')
-                    }
-                    supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
-                st.success("✅ Datos actualizados correctamente.")
-                time.sleep(1)
-                st.rerun()
+                with st.spinner("Guardando cambios..."):
+                    for index, row in edited_df.iterrows():
+                        mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
+                        riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
+                        res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
+                        update_data = {
+                            "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
+                            "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
+                            "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
+                            "comentarios": row.get('comentarios', '')
+                        }
+                        supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
+                    st.success("✅ Datos actualizados correctamente.")
+                    time.sleep(1)
+                    st.rerun()
             except Exception as e: st.error(f"Error al actualizar: {e}")
     except Exception as e: st.error(f"Error cargando historial: {e}")
 
@@ -769,7 +803,7 @@ def mostrar_dashboard():
     except Exception as e:
         st.error(f"Error cargando métricas: {e}")
 
-# --- 8. FUNCIÓN PANEL ADMINISTRADOR (NUEVA) ---
+# --- 8. FUNCIÓN PANEL ADMINISTRADOR ---
 def mostrar_admin_users():
     st.title("👮 Panel de Administrador")
     st.info("Listado completo de atletas registrados en la base de datos.")
@@ -790,11 +824,10 @@ def mostrar_admin_users():
 # --- 9. MAIN LOOP ---
 def main():
     if not st.session_state.user:
-        # LOGIN (Logo 50% centrado con wrapper para mobile)
+        # LOGIN (Logo con wrapper responsive: 50% Desktop / 30% Mobile)
         c_espacio1, c_central, c_espacio2 = st.columns([1, 2, 1])
         with c_central:
-            # Envolvemos el logo en un contenedor HTML para el CSS responsive
-            st.markdown('<div class="login-logo-box">', unsafe_allow_html=True)
+            st.markdown('<div class="logo-login-container">', unsafe_allow_html=True)
             try: st.image("logo-taescorer.png", use_container_width=True)
             except: st.title("Taescorer")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -843,6 +876,7 @@ def main():
             if st.button("Salir", use_container_width=True): logout()
 
             # --- ZONA DE ADMINISTRADOR ---
+            # Solo visible para tu correo
             if st.session_state.user.email == "williamgazzu@gmail.com": 
                 st.divider()
                 st.caption("🔒 Admin Zone")
