@@ -8,48 +8,7 @@ from io import BytesIO
 from PIL import Image
 from streamlit_cropper import st_cropper
 import base64
-import streamlit as st
 
-# ... tus otros imports ...
-
-# --- CÓDIGO FINAL ---
-hide_elements = """
-    <style>
-    /* 1. Esto elimina el botón "Fork", GitHub y las opciones de la derecha */
-    .stAppDeployButton, 
-    [data-testid="stToolbar"], 
-    [data-testid="stHeaderActionElements"] {
-        visibility: hidden !important;
-        display: none !important;
-    }
-
-    /* 2. Esto elimina la barra de colores arcoíris de arriba */
-    [data-testid="stDecoration"] {
-        visibility: hidden !important;
-        display: none !important;
-    }
-
-    /* 3. Esto elimina el pie de página */
-    footer {
-        visibility: hidden !important;
-        display: none !important;
-    }
-
-    /* 4. AQUÍ ESTÁ LA CLAVE: 
-       Hacemos el fondo del encabezado transparente para que no tape nada,
-       pero NO lo ocultamos con "display: none" para que el botón pueda existir. */
-    header {
-        background: transparent !important;
-    }
-    
-    /* 5. Forzamos la visibilidad del botón del menú (la flechita) */
-    [data-testid="collapsedControl"] {
-        visibility: visible !important;
-        display: block !important;
-    }
-    </style>
-"""
-st.markdown(hide_elements, unsafe_allow_html=True)
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -923,6 +882,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
