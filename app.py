@@ -20,7 +20,7 @@ st.set_page_config(
     page_title="Taescorer", 
     page_icon="favicon.png", 
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
@@ -34,18 +34,19 @@ def get_image_base64(path):
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
-# --- 2. CONEXIÓN BASE DE DATOS (PRIVADA POR USUARIO) ---
-def get_supabase():
-    if 'supabase_client' not in st.session_state:
-        try:
-            url = st.secrets["supabase"]["url"]
-            key = st.secrets["supabase"]["key"]
-            st.session_state.supabase_client = create_client(url, key)
-        except:
-            return None
-    return st.session_state.supabase_client
+# --- 2. CONEXIÓN BASE DE DATOS (NUEVO MÉTODO LIGERO PARA MÓVILES) ---
+url = st.secrets["supabase"]["url"]
+key = st.secrets["supabase"]["key"]
 
-supabase = get_supabase()
+# Creamos una conexión fresca cada vez (Evita que se crucen los datos de usuarios)
+supabase = create_client(url, key)
+
+# Si el usuario ya inició sesión, le ponemos sus "llaves" a esta conexión
+if 'access_token' in st.session_state and 'refresh_token' in st.session_state:
+    try:
+        supabase.auth.set_session(st.session_state.access_token, st.session_state.refresh_token)
+    except Exception:
+        pass
 
 # --- 3. LISTAS OFICIALES ---
 CATEGORIAS_POOMSAE = [
@@ -68,191 +69,191 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA MOBILE) ---
+# --- 4. CSS MAESTRO ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
-    /* FONDO OSCURO */
     .stApp {{ background-color: #1f202b !important; }}
-    
-    /* Ocultar elementos nativos de Streamlit */
-    footer, #MainMenu, .stDeployButton, .stAppDeployButton, 
-    [data-testid="stDecoration"], [data-testid="stStatusWidget"], 
-    .viewerBadge_container__1QSob, [data-testid="stHeaderActionElements"] {{ 
-        display: none !important; 
-    }}
+    div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* Header transparente y oculto */
+    footer {{ display: none !important; }}
+    #MainMenu {{ display: none !important; }}
+    .stDeployButton {{ display: none !important; }}
+    [data-testid="stToolbar"] {{ display: none !important; }}
+    [data-testid="stDecoration"] {{ display: none !important; }}
+    [data-testid="stStatusWidget"] {{ display: none !important; }}
+    
+    .viewerBadge_container__1QSob {{ display: none !important; visibility: hidden !important; }}
+    div[class^="viewerBadge_"] {{ display: none !important; visibility: hidden !important; }}
+    div[class^="styles_viewerBadge"] {{ display: none !important; visibility: hidden !important; }}
+
     header[data-testid="stHeader"] {{
         background: transparent !important;
-        height: 0px !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
-    }}
-
-    /* ============================================================
-       COMPORTAMIENTO ESCRITORIO (Pantallas > 992px)
-       ============================================================ */
-    @media (min-width: 993px) {{
-        .mobile-nav {{ display: none !important; }}
-        
-        /* Ajuste de padding superior para escritorio */
-        .block-container {{ padding-top: 2rem !important; }}
-    }}
-
-    /* ============================================================
-       COMPORTAMIENTO MÓVIL (Pantallas <= 992px)
-       ============================================================ */
-    @media (max-width: 992px) {{
-        /* 1. OCULTAR SIDEBAR NATIVA DE FORMA AGRESIVA */
-        [data-testid="stSidebar"], [data-testid="collapsedControl"] {{
-            display: none !important;
-            width: 0px !important;
-        }}
-        
-        /* 2. DAR ESPACIO ABAJO PARA LA BARRA */
-        .block-container {{
-            padding-bottom: 120px !important;
-            padding-top: 1rem !important;
-        }}
-
-        /* 3. BARRA DE NAVEGACIÓN FLOTANTE (Fixed) */
-        .mobile-nav {{
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 75px !important;
-            background-color: #1f202b !important;
-            border-top: 1px solid #333 !important;
-            display: flex !important;
-            justify-content: space-around !important;
-            align-items: center !important;
-            z-index: 99999999 !important; /* MÁXIMA PRIORIDAD */
-            box-shadow: 0px -4px 10px rgba(0,0,0,0.4) !important;
-            padding-bottom: env(safe-area-inset-bottom);
-        }}
-
-        .nav-item {{
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            text-decoration: none !important;
-            color: #888 !important;
-            font-size: 11px !important;
-            flex-grow: 1 !important;
-            height: 100% !important;
-            background: transparent !important;
-            border: none !important;
-        }}
-
-        .nav-item:hover {{
-            color: #0bb4fa !important;
-        }}
-        
-        .nav-item.active {{
-            color: #0bb4fa !important;
-            font-weight: 700 !important;
-        }}
-
-        .nav-icon {{
-            font-size: 24px !important;
-            margin-bottom: 4px !important;
-            display: block !important;
-        }}
+        pointer-events: none !important; 
+        z-index: 100000 !important;
+        height: 60px !important;
     }}
     
-    /* ESTILOS SIDEBAR DESKTOP */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapsedControl"] {{
+        pointer-events: auto !important; 
+        display: block !important;
+        color: white !important;
+        background-color: transparent !important;
+        z-index: 100001 !important; 
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        width: 40px !important;
+        height: 40px !important;
+        border: none !important;
+    }}
+    
+    [data-testid="stSidebarCollapsedControl"] svg {{
+        fill: white !important;
+        stroke: white !important;
+        width: 24px !important;
+        height: 24px !important;
+    }}
+
+    .custom-header {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        background-color: #1f202b;
+        border-bottom: 1px solid #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }}
+    .custom-header img {{
+        height: 35px;
+        object-fit: contain;
+    }}
+
+    .block-container {{ padding-top: 5rem !important; }}
+
+    .logo-login-container {{
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        margin-bottom: 20px;
+    }}
+    
+    .logo-login-img {{
+        width: 50%;
+        max-width: 300px;
+        height: auto;
+        object-fit: contain;
+    }}
+
+    @media (max-width: 768px) {{
+        .logo-login-img {{
+            width: 30% !important; 
+        }}
+    }}
+
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
-        display: block !important; margin: 0 auto !important; width: 60% !important;
+        display: block !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 50% !important;
+        align-self: center !important;
     }}
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
-    section[data-testid="stSidebar"] button {{
-        border: none !important; color: white !important; font-weight: 600 !important;
-        box-shadow: none !important; width: 100% !important; transition: all 0.2s !important;
-    }}
-    section[data-testid="stSidebar"] button:hover {{ filter: brightness(1.2) !important; }}
     
-    /* Colores Específicos Sidebar Desktop */
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; margin-bottom: 20px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 8px 8px 0 0 !important; margin-bottom: 1px !important; }}
+    section[data-testid="stSidebar"] button {{
+        border: none !important;
+        color: white !important;
+        font-weight: 600 !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        transition: all 0.2s !important;
+    }}
+    section[data-testid="stSidebar"] button:hover {{
+        filter: brightness(1.15) !important;
+        z-index: 10 !important;
+    }}
+
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
+
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
-    section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 8px 8px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 10px 10px !important; }}
+
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
+    
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
+    section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
+
+    div[role="radiogroup"] {{ display: none !important; }}
 
 </style>
+
+<div class="custom-header">
+    <img src="{logo_b64}" alt="Taescorer">
+</div>
 """, unsafe_allow_html=True)
 
 # --- GESTIÓN DE SESIÓN ---
 if 'user' not in st.session_state: st.session_state.user = None
 if 'perfil' not in st.session_state: st.session_state.perfil = None
-
-# LOGICA DE SINCRONIZACIÓN URL <-> ESTADO
-MAPA_RUTAS = {
-    "dashboard": "Dashboard",
-    "registro": "Registrar Torneo",
-    "base": "Base de Torneos",
-    "calendario": "Calendario",
-    "perfil": "Mi Perfil",
-    "admin": "Admin Users"
-}
-
-# 1. Leer URL
-query_params = st.query_params
-page_param = query_params.get("page", "dashboard") # default dashboard
-
-# 2. Si no hay estado definido, usar URL
-if 'page_selection' not in st.session_state:
-    st.session_state.page_selection = MAPA_RUTAS.get(page_param, "Dashboard")
-
-# 3. Helper para navegación desktop
-def navegar_a(nombre_interno):
-    st.session_state.page_selection = nombre_interno
-    # Actualizar URL
-    key_url = [k for k, v in MAPA_RUTAS.items() if v == nombre_interno]
-    if key_url:
-        st.query_params["page"] = key_url[0]
+if 'page_selection' not in st.session_state: st.session_state.page_selection = "Dashboard"
 
 # ==========================================
-# 5. FUNCIONES DE LÓGICA
+# 5. FUNCIONES DE LÓGICA (MODIFICADAS PARA GUARDAR TOKENS)
 # ==========================================
 
 def login(email, password):
-    if not supabase: return
     try:
         with st.spinner("🥋 Entrando al dojang..."):
             response = supabase.auth.sign_in_with_password({"email": email, "password": password})
             st.session_state.user = response.user
+            # Guardamos las llaves ligeras en vez de la conexión entera
+            st.session_state.access_token = response.session.access_token
+            st.session_state.refresh_token = response.session.refresh_token
             cargar_perfil()
             time.sleep(0.5)
             st.rerun()
-    except Exception as e: st.error(f"Error: {e}")
+    except Exception as e: 
+        st.error(f"Error: {e}")
 
 def sign_up(email, password, full_name):
-    if not supabase: return
     try:
         with st.spinner("📝 Registrando atleta..."):
             response = supabase.auth.sign_up({"email": email, "password": password, "options": {"data": {"full_name": full_name}}})
             st.session_state.user = response.user
+            if response.session:
+                st.session_state.access_token = response.session.access_token
+                st.session_state.refresh_token = response.session.refresh_token
             st.success("Cuenta creada exitosamente.")
             time.sleep(1)
             st.rerun()
-    except Exception as e: st.error(f"Error: {e}")
+    except Exception as e: 
+        st.error(f"Error: {e}")
 
 def logout():
-    if supabase: supabase.auth.sign_out()
-    st.session_state.user = None
-    st.session_state.perfil = None
+    try:
+        supabase.auth.sign_out()
+    except:
+        pass
+    # Limpiamos absolutamente toda la memoria al salir
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
     st.query_params.clear()
     st.rerun()
 
 def cargar_perfil():
-    if st.session_state.user and supabase:
+    if st.session_state.user:
         try:
             data = supabase.table("perfiles").select("*").eq("id", st.session_state.user.id).execute()
             if data.data: st.session_state.perfil = data.data[0]
@@ -261,7 +262,7 @@ def cargar_perfil():
 def actualizar_perfil(datos, archivo_foto_bytes):
     user_id = st.session_state.user.id
     foto_url = st.session_state.perfil.get('foto_url') if st.session_state.perfil else None
-    if archivo_foto_bytes and supabase:
+    if archivo_foto_bytes:
         try:
             file_path = f"{user_id}/avatar.jpg"
             supabase.storage.from_("avatars").upload(file_path, archivo_foto_bytes, {"content-type": "image/jpeg", "upsert": "true"})
@@ -376,6 +377,7 @@ def mostrar_formulario_registro():
     st.header("📝 Nuevo Torneo (Resultados)")
     st.info("Ingresa las notas y verás el cálculo final en tiempo real.")
     rivales_existentes = get_lista_rivales()
+    
     c1, c2, c3 = st.columns(3)
     nom = c1.text_input("Nombre del torneo", key="t_nombre")
     fec = c2.date_input("Fecha", date.today(), key="t_fecha")
@@ -393,17 +395,20 @@ def mostrar_formulario_registro():
         cr1, cr2 = st.columns(2)
         tr = cr1.selectbox(f"Fase {i+1}", tipos, key=f"tr_{i}")
         opcion_rival = cr2.selectbox(f"Seleccionar Rival (Ronda {i+1})", ["➕ Nuevo Rival..."] + rivales_existentes, key=f"sel_riv_{i}")
-        nr = cr2.text_input(f"Escribe nombre del rival", key=f"text_riv_{i}") if opcion_rival == "➕ Nuevo Rival..." else opcion_rival
+        if opcion_rival == "➕ Nuevo Rival...": nr = cr2.text_input(f"Escribe nombre del rival", key=f"text_riv_{i}")
+        else: nr = opcion_rival
         comentarios = st.text_area(f"Comentarios Ronda {i+1}", key=f"comm_{i}")
 
         tp1, tp2 = st.tabs(["Poomsae 1", "Poomsae 2"])
         with tp1:
             np1 = st.selectbox("Selecciona el poomsae", LISTA_POOMSAE_OFICIAL, key=f"np1_{i}")
+            st.markdown("**🔵 Mis Notas**")
             c1, c2, c3 = st.columns(3)
             mt1 = c1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt1_{i}")
             mp1 = c2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp1_{i}")
             total_yo_1 = mt1 + mp1
             c3.metric(label="Final", value=f"{total_yo_1:.2f}")
+            st.markdown("**🔴 Notas Rival**")
             rc1, rc2, rc3 = st.columns(3)
             rt1 = rc1.number_input("Rival nota técnica", 0.0, 4.0, step=0.01, key=f"rt1_{i}")
             rp1 = rc2.number_input("Rival nota presentación", 0.0, 6.0, step=0.01, key=f"rp1_{i}")
@@ -411,11 +416,13 @@ def mostrar_formulario_registro():
             rc3.metric(label="Final", value=f"{total_riv_1:.2f}")
         with tp2:
             np2 = st.selectbox("Selecciona el poomsae", LISTA_POOMSAE_OFICIAL, key=f"np2_{i}")
+            st.markdown("**🔵 Mis Notas**")
             c1, c2, c3 = st.columns(3)
             mt2 = c1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt2_{i}")
             mp2 = c2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp2_{i}")
             total_yo_2 = mt2 + mp2
             c3.metric(label="Final", value=f"{total_yo_2:.2f}")
+            st.markdown("**🔴 Notas Rival**")
             rc1, rc2, rc3 = st.columns(3)
             rt2 = rc1.number_input("Rival nota técnica", 0.0, 4.0, step=0.01, key=f"rt2_{i}")
             rp2 = rc2.number_input("Rival nota presentación", 0.0, 6.0, step=0.01, key=f"rp2_{i}")
@@ -435,7 +442,7 @@ def mostrar_formulario_registro():
             if exito:
                 st.success("¡Torneo guardado exitosamente!")
                 keys_a_borrar = ["t_nombre", "t_fecha", "t_cat", "t_mod", "t_rondas"]
-                for key in st.session_state.keys():
+                for key in list(st.session_state.keys()):
                     if key in keys_a_borrar or any(x in key for x in ["np1_", "mt1_", "mp1_", "rt1_", "rp1_", "np2_", "mt2_", "mp2_", "rt2_", "rp2_", "tr_", "nr_", "sel_riv_", "text_riv_", "comm_"]):
                         del st.session_state[key]
                 time.sleep(1.5)
@@ -445,7 +452,6 @@ def mostrar_formulario_registro():
 def mostrar_calendario():
     st.title("📅 Calendario de Torneos")
     
-    # 1. GESTIÓN (FORMULARIO Y EDICIÓN) - ARRIBA
     st.subheader("🛠️ Gestión de Agenda")
     tab_add, tab_edit = st.tabs(["➕ Agregar Evento", "✏️ Editar / Eliminar Eventos"])
 
@@ -525,7 +531,6 @@ def mostrar_calendario():
 
     st.divider()
 
-    # 2. VISUALIZACIÓN CALENDARIO - ABAJO
     calendar_events = []
     for evt in eventos_db:
         color = "#3788d8"
@@ -553,7 +558,7 @@ def mostrar_calendario():
             "list": "Lista", "prev": "Ant", "next": "Sig"
         },
         "initialView": "dayGridMonth",
-        "locale": "es",            
+        "locale": "es",          
         "height": 800,  
         "navLinks": True,
         "selectable": True,
@@ -808,11 +813,11 @@ def mostrar_admin_users():
 # --- 9. MAIN LOOP ---
 def main():
     if not st.session_state.user:
-        # LOGIN (Logo con wrapper responsive: 50% Desktop / 30% Mobile)
+        # LOGIN
         c_espacio1, c_central, c_espacio2 = st.columns([1, 2, 1])
         with c_central:
             st.markdown(f'''
-                <div class="logo-login-html">
+                <div class="logo-login-container">
                     <img src="{logo_b64}" class="logo-login-img">
                 </div>
             ''', unsafe_allow_html=True)
@@ -828,40 +833,12 @@ def main():
                 np = st.text_input("Pass", type="password", key="rp")
                 if st.button("Registrarse", use_container_width=True): sign_up(ne, np, nn)
     else:
-        # ==========================================
-        # APP PRINCIPAL (USUARIO LOGUEADO)
-        # ==========================================
+        # APP PRINCIPAL
         if not st.session_state.perfil: cargar_perfil()
         p = st.session_state.perfil
         foto = p.get('foto_url') if p else "https://cdn-icons-png.flaticon.com/512/847/847969.png"
         nom = p.get('nombre_completo', "Atleta")
         
-        # --- A. BARRA DE NAVEGACIÓN MÓVIL (INYECTADA AQUÍ) ---
-        # Está fuera de la sidebar para que sea visible en main body
-        # El CSS arriba ('mobile-nav') se encarga de que sea 'fixed' abajo
-        st.markdown(f"""
-            <div class="mobile-nav">
-                <a href="?page=perfil" class="nav-item {'active' if st.session_state.page_selection == 'Mi Perfil' else ''}" target="_self">
-                    <span class="nav-icon">👤</span>
-                    <span>Perfil</span>
-                </a>
-                <a href="?page=dashboard" class="nav-item {'active' if st.session_state.page_selection == 'Dashboard' else ''}" target="_self">
-                    <span class="nav-icon">📊</span>
-                    <span>Dash</span>
-                </a>
-                <a href="?page=registro" class="nav-item {'active' if st.session_state.page_selection == 'Registrar Torneo' else ''}" target="_self">
-                    <span class="nav-icon">📝</span>
-                    <span>Nuevo</span>
-                </a>
-                <a href="?page=calendario" class="nav-item {'active' if st.session_state.page_selection == 'Calendario' else ''}" target="_self">
-                    <span class="nav-icon">📅</span>
-                    <span>Agenda</span>
-                </a>
-            </div>
-        """, unsafe_allow_html=True)
-
-        # --- B. SIDEBAR (SOLO DESKTOP) ---
-        # El CSS oculta toda la sidebar en pantallas < 992px
         with st.sidebar:
             try: st.image("logo-taescorer.png")
             except: pass
@@ -874,25 +851,29 @@ def main():
                 <p class="user-name">{nom}</p>
             """, unsafe_allow_html=True)
             
-            if st.button("Ir a Mi Perfil", use_container_width=True): navegar_a("Mi Perfil"); st.rerun()
+            # 1. PERFIL
+            if st.button("Ir a Mi Perfil", use_container_width=True): st.session_state.page_selection = "Mi Perfil"; st.rerun()
             st.divider()
             
-            if st.button("Dashboard", use_container_width=True): navegar_a("Dashboard"); st.rerun()
-            if st.button("Registrar Resultados", use_container_width=True): navegar_a("Registrar Torneo"); st.rerun()
-            if st.button("Base de Torneos", use_container_width=True): navegar_a("Base de Torneos"); st.rerun()
-            if st.button("Calendario", use_container_width=True): navegar_a("Calendario"); st.rerun() 
+            # BLOQUE UNIDO DE BOTONES
+            if st.button("Dashboard", use_container_width=True): st.session_state.page_selection = "Dashboard"; st.rerun()
+            if st.button("Registrar Resultados", use_container_width=True): st.session_state.page_selection = "Registrar Torneo"; st.rerun()
+            if st.button("Base de Torneos", use_container_width=True): st.session_state.page_selection = "Base de Torneos"; st.rerun()
+            if st.button("Calendario", use_container_width=True): st.session_state.page_selection = "Calendario"; st.rerun() 
             
             st.divider()
+            # 6. SALIR
             if st.button("Salir", use_container_width=True): logout()
 
+            # --- ZONA DE ADMINISTRADOR ---
             if st.session_state.user.email == "williamgazzu@gmail.com": 
                 st.divider()
                 st.caption("🔒 Admin Zone")
                 if st.button("Ver Usuarios", use_container_width=True):
-                    navegar_a("Admin Users")
+                    st.session_state.page_selection = "Admin Users"
                     st.rerun()
 
-        # --- C. ROUTER (CONTENIDO CENTRAL) ---
+        # ROUTER DE PÁGINAS
         if st.session_state.page_selection == "Dashboard": mostrar_dashboard()
         elif st.session_state.page_selection == "Registrar Torneo": mostrar_formulario_registro()
         elif st.session_state.page_selection == "Base de Torneos": mostrar_historial_editor()
@@ -902,4 +883,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
