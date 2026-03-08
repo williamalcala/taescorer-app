@@ -66,7 +66,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SIN INVENTOS EN EL HEADER, MENÚ NATIVO LIBERADO) ---
+# --- 4. CSS MAESTRO (LIMPIO, SIN TOCAR EL HEADER NI EL MENÚ) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -76,14 +76,7 @@ st.markdown(f"""
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* HEADER NATIVO DE STREAMLIT (Solo le damos fondo oscuro, no lo bloqueamos) */
-    header[data-testid="stHeader"] {{
-        background-color: #1f202b !important;
-    }}
-
-    /* OCULTAR BOTONES INNECESARIOS (Github, Corona, Footer) */
-    .stDeployButton, #MainMenu, [data-testid="stToolbar"], 
-    [data-testid="stDecoration"], [data-testid="stStatusWidget"],
+    /* OCULTAR SOLO LAS INSIGNIAS DE ABAJO Y EL FOOTER */
     footer, .viewerBadge_container__1QSob, div[class^="viewerBadge_"] {{
         display: none !important;
         visibility: hidden !important;
