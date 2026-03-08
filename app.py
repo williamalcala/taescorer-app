@@ -34,17 +34,18 @@ def get_image_base64(path):
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
-# --- 2. CONEXIÓN BASE DE DATOS ---
-@st.cache_resource
-def init_connection():
-    try:
-        url = st.secrets["supabase"]["url"]
-        key = st.secrets["supabase"]["key"]
-        return create_client(url, key)
-    except:
-        return None
+# --- 2. CONEXIÓN BASE DE DATOS (PRIVADA POR USUARIO) ---
+def get_supabase():
+    if 'supabase_client' not in st.session_state:
+        try:
+            url = st.secrets["supabase"]["url"]
+            key = st.secrets["supabase"]["key"]
+            st.session_state.supabase_client = create_client(url, key)
+        except:
+            return None
+    return st.session_state.supabase_client
 
-supabase = init_connection()
+supabase = get_supabase()
 
 # --- 3. LISTAS OFICIALES ---
 CATEGORIAS_POOMSAE = [
@@ -901,3 +902,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
