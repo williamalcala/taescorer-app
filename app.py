@@ -34,14 +34,11 @@ def get_image_base64(path):
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
-# --- 2. CONEXIÓN BASE DE DATOS (NUEVO MÉTODO LIGERO PARA MÓVILES) ---
+# --- 2. CONEXIÓN BASE DE DATOS (MÉTODO LIGERO PARA MÓVILES) ---
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 
-# Creamos una conexión fresca cada vez (Evita que se crucen los datos de usuarios)
 supabase = create_client(url, key)
-
-# Si el usuario ya inició sesión, le ponemos sus "llaves" a esta conexión
 if 'access_token' in st.session_state and 'refresh_token' in st.session_state:
     try:
         supabase.auth.set_session(st.session_state.access_token, st.session_state.refresh_token)
@@ -69,55 +66,37 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO ---
+# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA DE DISEÑO) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
+    /* FONDO OSCURO */
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    footer {{ display: none !important; }}
-    #MainMenu {{ display: none !important; }}
-    .stDeployButton {{ display: none !important; }}
-    [data-testid="stToolbar"] {{ display: none !important; }}
-    [data-testid="stDecoration"] {{ display: none !important; }}
-    [data-testid="stStatusWidget"] {{ display: none !important; }}
-    
-    .viewerBadge_container__1QSob {{ display: none !important; visibility: hidden !important; }}
-    div[class^="viewerBadge_"] {{ display: none !important; visibility: hidden !important; }}
-    div[class^="styles_viewerBadge"] {{ display: none !important; visibility: hidden !important; }}
+    /* LIMPIEZA TOTAL DE ICONOS (Corona, Github, etc.) */
+    footer, #MainMenu, .stDeployButton, [data-testid="stToolbar"], 
+    [data-testid="stDecoration"], [data-testid="stStatusWidget"], 
+    .viewerBadge_container__1QSob, div[class^="viewerBadge_"], 
+    div[class^="styles_viewerBadge"] {{ 
+        display: none !important; visibility: hidden !important; 
+    }}
 
+    /* HEADER NATIVO TRANSPARENTE PERO CON BOTÓN BLANCO */
     header[data-testid="stHeader"] {{
-        background: transparent !important;
-        pointer-events: none !important; 
-        z-index: 100000 !important;
-        height: 60px !important;
-    }}
-    
-    [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapsedControl"] {{
-        pointer-events: auto !important; 
-        display: block !important;
-        color: white !important;
         background-color: transparent !important;
-        z-index: 100001 !important; 
-        position: fixed !important;
-        top: 10px !important;
-        left: 10px !important;
-        width: 40px !important;
-        height: 40px !important;
-        border: none !important;
+        box-shadow: none !important;
     }}
-    
-    [data-testid="stSidebarCollapsedControl"] svg {{
+    /* Pintamos el icono del menú de hamburguesa de color blanco */
+    header[data-testid="stHeader"] button svg {{
         fill: white !important;
+        color: white !important;
         stroke: white !important;
-        width: 24px !important;
-        height: 24px !important;
     }}
 
+    /* TU HEADER FALSO (LOGO CENTRADO) */
     .custom-header {{
         position: fixed;
         top: 0;
@@ -129,7 +108,7 @@ st.markdown(f"""
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 9999;
+        z-index: 999; /* Se mantiene por debajo del botón del menú */
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }}
     .custom-header img {{
@@ -137,66 +116,35 @@ st.markdown(f"""
         object-fit: contain;
     }}
 
+    /* Empujar contenido hacia abajo */
     .block-container {{ padding-top: 5rem !important; }}
 
-    .logo-login-container {{
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        margin-bottom: 20px;
-    }}
-    
-    .logo-login-img {{
-        width: 50%;
-        max-width: 300px;
-        height: auto;
-        object-fit: contain;
-    }}
-
+    /* LOGO DEL LOGIN (50% PC / 30% MOVIL) */
+    .logo-login-container {{ display: flex; justify-content: center; width: 100%; margin-bottom: 20px; }}
+    .logo-login-img {{ width: 50%; max-width: 300px; height: auto; object-fit: contain; }}
     @media (max-width: 768px) {{
-        .logo-login-img {{
-            width: 30% !important; 
-        }}
+        .logo-login-img {{ width: 30% !important; }}
     }}
 
-    section[data-testid="stSidebar"] div[data-testid="stImage"] img {{
-        display: block !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        width: 50% !important;
-        align-self: center !important;
-    }}
+    /* DISEÑO DEL MENÚ LATERAL (BOTONES) */
+    section[data-testid="stSidebar"] div[data-testid="stImage"] img {{ display: block !important; margin-left: auto !important; margin-right: auto !important; width: 50% !important; align-self: center !important; }}
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
-    
-    section[data-testid="stSidebar"] button {{
-        border: none !important;
-        color: white !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
-        width: 100% !important;
-        transition: all 0.2s !important;
-    }}
-    section[data-testid="stSidebar"] button:hover {{
-        filter: brightness(1.15) !important;
-        z-index: 10 !important;
-    }}
+    section[data-testid="stSidebar"] button {{ border: none !important; color: white !important; font-weight: 600 !important; box-shadow: none !important; width: 100% !important; transition: all 0.2s !important; }}
+    section[data-testid="stSidebar"] button:hover {{ filter: brightness(1.15) !important; z-index: 10 !important; }}
 
+    /* Colores Específicos */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
-
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(3) button {{ background-color: #00f9b1 !important; color: #1e1e1e !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(4) button {{ background-color: #3a2783 !important; border-radius: 0 !important; margin-bottom: 1px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(5) button {{ background-color: #ff9f1c !important; border-radius: 0 0 10px 10px !important; }}
-
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) {{ padding-top: 40px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
-    
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
 
     div[role="radiogroup"] {{ display: none !important; }}
-
 </style>
 
 <div class="custom-header">
@@ -210,7 +158,7 @@ if 'perfil' not in st.session_state: st.session_state.perfil = None
 if 'page_selection' not in st.session_state: st.session_state.page_selection = "Dashboard"
 
 # ==========================================
-# 5. FUNCIONES DE LÓGICA (MODIFICADAS PARA GUARDAR TOKENS)
+# 5. FUNCIONES DE LÓGICA 
 # ==========================================
 
 def login(email, password):
@@ -218,7 +166,6 @@ def login(email, password):
         with st.spinner("🥋 Entrando al dojang..."):
             response = supabase.auth.sign_in_with_password({"email": email, "password": password})
             st.session_state.user = response.user
-            # Guardamos las llaves ligeras en vez de la conexión entera
             st.session_state.access_token = response.session.access_token
             st.session_state.refresh_token = response.session.refresh_token
             cargar_perfil()
@@ -246,7 +193,6 @@ def logout():
         supabase.auth.sign_out()
     except:
         pass
-    # Limpiamos absolutamente toda la memoria al salir
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.query_params.clear()
@@ -883,5 +829,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
