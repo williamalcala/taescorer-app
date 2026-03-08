@@ -23,7 +23,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
+# --- FUNCIÓN AUXILIAR: LOGO A BASE64 (Solo para el Login) ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as image_file:
@@ -66,7 +66,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SOLUCIÓN A PRUEBA DE FALLOS PARA EL MENÚ) ---
+# --- 4. CSS MAESTRO (SIN INVENTOS EN EL HEADER, MENÚ NATIVO LIBERADO) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -76,51 +76,18 @@ st.markdown(f"""
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* 1. SALVAMOS EL MENÚ HAMBURGUESA NATIVO (Aseguramos que sea visible y blanco) */
-    [data-testid="collapsedControl"] {{
-        display: flex !important;
-        visibility: visible !important;
-        z-index: 999999 !important; /* Siempre arriba de todo */
-    }}
-    [data-testid="collapsedControl"] svg {{
-        fill: white !important;
-        color: white !important;
-    }}
-
-    /* 2. HEADER NATIVO (Lo dejamos vivo, pero lo pintamos del color oscuro de tu app) */
+    /* HEADER NATIVO DE STREAMLIT (Solo le damos fondo oscuro, no lo bloqueamos) */
     header[data-testid="stHeader"] {{
         background-color: #1f202b !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }}
 
-    /* 3. TU LOGO EN EL CENTRO (Fantasma) */
-    .custom-header {{
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 60px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999998; 
-        pointer-events: none; /* ESTA ES LA CLAVE: Los clicks atraviesan el logo y llegan al botón del menú */
-    }}
-    .custom-header img {{
-        height: 35px;
-        object-fit: contain;
-    }}
-
-    /* 4. OCULTAR BOTONES INNECESARIOS (Github, Corona, Footer) */
+    /* OCULTAR BOTONES INNECESARIOS (Github, Corona, Footer) */
     .stDeployButton, #MainMenu, [data-testid="stToolbar"], 
     [data-testid="stDecoration"], [data-testid="stStatusWidget"],
     footer, .viewerBadge_container__1QSob, div[class^="viewerBadge_"] {{
         display: none !important;
         visibility: hidden !important;
     }}
-
-    /* Empujar el contenido hacia abajo para que no se superponga con el header */
-    .block-container {{ padding-top: 5rem !important; }}
 
     /* LOGO DEL LOGIN (50% PC / 30% MOVIL) */
     .logo-login-container {{ display: flex; justify-content: center; width: 100%; margin-bottom: 20px; }}
@@ -149,10 +116,6 @@ st.markdown(f"""
 
     div[role="radiogroup"] {{ display: none !important; }}
 </style>
-
-<div class="custom-header">
-    <img src="{logo_b64}" alt="Taescorer">
-</div>
 """, unsafe_allow_html=True)
 
 # --- GESTIÓN DE SESIÓN ---
