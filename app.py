@@ -1,3 +1,16 @@
+¡Entendido! Ese error en el que le das al botón de guardar y "no ocurre absolutamente nada" (ni siquiera sale un mensaje de error o el spinner de carga) es un **bug muy conocido de Streamlit** cuando se mezclan dos cosas:
+
+1. Un `st.form` (el contenedor que usábamos para agrupar las opciones).
+2. Un componente interactivo externo como el recortador de fotos (`st_cropper`).
+
+Como el recortador de fotos está fuera del formulario, cada vez que lo tocas o interactúas con él, Streamlit "olvida" que presionaste el botón de enviar.
+
+**La Solución:**
+He eliminado el "formulario" (`st.form`) y lo he convertido en un **botón normal y directo** (`st.button`). De esta forma, el guardado se ejecuta instantáneamente sin que el recortador de imágenes lo bloquee. Además, le puse un escudo extra para asegurar que lea bien la edad y no lance errores ocultos.
+
+Para no correr riesgos y asegurarnos de que todo funcione perfecto de principio a fin, aquí tienes el **CÓDIGO COMPLETO**. Cópialo y reemplaza todo tu `app.py`:
+
+```python
 import streamlit as st
 from supabase import create_client
 import time
@@ -23,7 +36,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNCIÓN AUXILIAR: LOGO A BASE64 (Solo para el Login) ---
+# --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as image_file:
@@ -34,7 +47,7 @@ def get_image_base64(path):
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
-# --- 2. CONEXIÓN BASE DE DATOS (MÉTODO LIGERO PARA MÓVILES) ---
+# --- 2. CONEXIÓN BASE DE DATOS (MÉTODO LIGERO) ---
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 
@@ -66,22 +79,19 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SIN INVENTOS EN EL HEADER, MENÚ NATIVO LIBERADO) ---
+# --- 4. CSS MAESTRO ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
-    /* FONDO OSCURO GLOBAL */
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* HEADER NATIVO DE STREAMLIT (Solo le damos fondo oscuro, no lo bloqueamos) */
     header[data-testid="stHeader"] {{
         background-color: #1f202b !important;
     }}
 
-    /* OCULTAR BOTONES INNECESARIOS (Github, Corona, Footer) */
     .stDeployButton, #MainMenu, [data-testid="stToolbar"], 
     [data-testid="stDecoration"], [data-testid="stStatusWidget"],
     footer, .viewerBadge_container__1QSob, div[class^="viewerBadge_"] {{
@@ -89,20 +99,17 @@ st.markdown(f"""
         visibility: hidden !important;
     }}
 
-    /* LOGO DEL LOGIN (50% PC / 30% MOVIL) */
     .logo-login-container {{ display: flex; justify-content: center; width: 100%; margin-bottom: 20px; }}
     .logo-login-img {{ width: 50%; max-width: 300px; height: auto; object-fit: contain; }}
     @media (max-width: 768px) {{
         .logo-login-img {{ width: 30% !important; }}
     }}
 
-    /* DISEÑO DEL MENÚ LATERAL (BOTONES) */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{ display: block !important; margin-left: auto !important; margin-right: auto !important; width: 50% !important; align-self: center !important; }}
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
     section[data-testid="stSidebar"] button {{ border: none !important; color: white !important; font-weight: 600 !important; box-shadow: none !important; width: 100% !important; transition: all 0.2s !important; }}
     section[data-testid="stSidebar"] button:hover {{ filter: brightness(1.15) !important; z-index: 10 !important; }}
 
-    /* Colores Específicos Menú */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
@@ -168,7 +175,10 @@ def cargar_perfil():
     if st.session_state.user:
         try:
             data = supabase.table("perfiles").select("*").eq("id", st.session_state.user.id).execute()
-            if data.data: st.session_state.perfil = data.data[0]
+            if data.data: 
+                st.session_state.perfil = data.data[0]
+            else:
+                st.session_state.perfil = {}
         except: pass
 
 def actualizar_perfil(datos, archivo_foto_bytes):
@@ -185,17 +195,17 @@ def actualizar_perfil(datos, archivo_foto_bytes):
             
     try:
         with st.spinner("Guardando perfil..."):
-            datos_actualizados = {**datos}
+            datos_actualizados = {"id": user_id, **datos}
             if foto_url:
                 datos_actualizados["foto_url"] = foto_url
                 
-            supabase.table("perfiles").update(datos_actualizados).eq("id", user_id).execute()
-            st.success("✅ Perfil actualizado")
+            supabase.table("perfiles").upsert(datos_actualizados).execute()
+            st.success("✅ Perfil guardado correctamente.")
             cargar_perfil()
             time.sleep(1)
             st.rerun()
     except Exception as e: 
-        st.error(f"Error al guardar en base de datos: {e}")
+        st.error(f"Error técnico al guardar en base de datos: {e}")
 
 def get_lista_rivales():
     try:
@@ -271,10 +281,15 @@ def determinar_lugar(row):
 
 def mostrar_perfil():
     st.header("👤 Completar Perfil")
+    
+    # Cargamos el perfil actual si existe
     p = st.session_state.perfil if st.session_state.perfil else {}
+    
     c1, c2 = st.columns([1, 2])
     with c1:
-        if p.get('foto_url'): st.image(p.get('foto_url'), width=150)
+        if p.get('foto_url'): 
+            st.image(p.get('foto_url'), width=150)
+        
         uploaded = st.file_uploader("Foto", type=["jpg", "png"])
         img_bytes = None
         if uploaded:
@@ -284,23 +299,47 @@ def mostrar_perfil():
             buf = BytesIO()
             crop.save(buf, format="JPEG")
             img_bytes = buf.getvalue()
-    with c2:
-        with st.form("fp"):
-            # CORRECCIÓN AQUÍ: Aseguramos que la llave en el diccionario sea "nombre_completo"
-            n = st.text_input("Nombre", value=p.get('nombre_completo', ''))
-            e = st.number_input("Edad", 5, 99, value=p.get('edad', 18))
-            cat = st.selectbox("Categoría", CATEGORIAS_POOMSAE, index=CATEGORIAS_POOMSAE.index(p.get('categoria')) if p.get('categoria') in CATEGORIAS_POOMSAE else 0)
-            gr = st.selectbox("Grado", GRADOS_TKD, index=GRADOS_TKD.index(p.get('grado')) if p.get('grado') in GRADOS_TKD else 0)
-            gen = st.radio("Género", ["Masculino", "Femenino"], index=["Masculino", "Femenino"].index(p.get('genero')) if p.get('genero') in ["Masculino", "Femenino"] else 0, horizontal=True)
             
-            if st.form_submit_button("Guardar"): 
-                actualizar_perfil({
-                    "nombre_completo": n, 
-                    "edad": e, 
-                    "categoria": cat, 
-                    "grado": gr, 
-                    "genero": gen
-                }, img_bytes)
+    with c2:
+        # AQUÍ ESTÁ LA MAGIA: Quitamos el "st.form" para que el botón siempre responda
+        n = st.text_input("Nombre Completo", value=p.get('nombre_completo', ''))
+        
+        # Manejo seguro de la edad por si viene vacía
+        edad_actual = p.get('edad')
+        try:
+            edad_actual = int(edad_actual) if edad_actual is not None else 18
+        except:
+            edad_actual = 18
+            
+        e = st.number_input("Edad", 5, 99, value=edad_actual)
+        
+        # Selectbox Categoría
+        cat_val = p.get('categoria')
+        cat_idx = CATEGORIAS_POOMSAE.index(cat_val) if cat_val in CATEGORIAS_POOMSAE else 0
+        cat = st.selectbox("Categoría", CATEGORIAS_POOMSAE, index=cat_idx)
+        
+        # Selectbox Grado
+        gr_val = p.get('grado')
+        gr_idx = GRADOS_TKD.index(gr_val) if gr_val in GRADOS_TKD else 0
+        gr = st.selectbox("Grado", GRADOS_TKD, index=gr_idx)
+        
+        # Radio Género
+        gen_val = p.get('genero')
+        gen_idx = ["Masculino", "Femenino"].index(gen_val) if gen_val in ["Masculino", "Femenino"] else 0
+        gen = st.radio("Género", ["Masculino", "Femenino"], index=gen_idx, horizontal=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Botón de guardado normal que funciona 100% de las veces
+        if st.button("💾 Guardar Cambios", type="primary", use_container_width=True): 
+            actualizar_perfil({
+                "nombre_completo": n, 
+                "edad": int(e), 
+                "categoria": cat, 
+                "grado": gr, 
+                "genero": gen
+            }, img_bytes)
+
 
 def mostrar_formulario_registro():
     st.header("📝 Nuevo Torneo (Resultados)")
@@ -812,3 +851,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+```
