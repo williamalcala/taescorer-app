@@ -1,16 +1,3 @@
-¡Entendido! Ese error en el que le das al botón de guardar y "no ocurre absolutamente nada" (ni siquiera sale un mensaje de error o el spinner de carga) es un **bug muy conocido de Streamlit** cuando se mezclan dos cosas:
-
-1. Un `st.form` (el contenedor que usábamos para agrupar las opciones).
-2. Un componente interactivo externo como el recortador de fotos (`st_cropper`).
-
-Como el recortador de fotos está fuera del formulario, cada vez que lo tocas o interactúas con él, Streamlit "olvida" que presionaste el botón de enviar.
-
-**La Solución:**
-He eliminado el "formulario" (`st.form`) y lo he convertido en un **botón normal y directo** (`st.button`). De esta forma, el guardado se ejecuta instantáneamente sin que el recortador de imágenes lo bloquee. Además, le puse un escudo extra para asegurar que lea bien la edad y no lance errores ocultos.
-
-Para no correr riesgos y asegurarnos de que todo funcione perfecto de principio a fin, aquí tienes el **CÓDIGO COMPLETO**. Cópialo y reemplaza todo tu `app.py`:
-
-```python
 import streamlit as st
 from supabase import create_client
 import time
@@ -851,5 +838,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-```
