@@ -23,7 +23,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
+# --- FUNCIÓN AUXILIAR: LOGO A BASE64 (Solo para el Login) ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as image_file:
@@ -34,7 +34,7 @@ def get_image_base64(path):
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
-# --- 2. CONEXIÓN BASE DE DATOS (MÉTODO LIGERO) ---
+# --- 2. CONEXIÓN BASE DE DATOS (MÉTODO LIGERO PARA MÓVILES) ---
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 
@@ -72,31 +72,38 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
 
+    /* FONDO OSCURO GLOBAL */
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
+    /* HEADER DE STREAMLIT TRANSPARENTE */
     header[data-testid="stHeader"] {{
-        background-color: #1f202b !important;
+        background-color: transparent !important;
     }}
 
-    .stDeployButton, #MainMenu, [data-testid="stToolbar"], 
-    [data-testid="stDecoration"], [data-testid="stStatusWidget"],
-    footer, .viewerBadge_container__1QSob, div[class^="viewerBadge_"] {{
+    /* OCULTAR SÓLO LAS COSAS MOLESTAS (Sin tocar el menú ni la barra de herramientas) */
+    .stDeployButton, footer, 
+    .viewerBadge_container__1QSob, 
+    div[class^="viewerBadge_"], 
+    div[class^="styles_viewerBadge"] {{
         display: none !important;
         visibility: hidden !important;
     }}
 
+    /* LOGO DEL LOGIN (50% PC / 30% MOVIL) */
     .logo-login-container {{ display: flex; justify-content: center; width: 100%; margin-bottom: 20px; }}
     .logo-login-img {{ width: 50%; max-width: 300px; height: auto; object-fit: contain; }}
     @media (max-width: 768px) {{
         .logo-login-img {{ width: 30% !important; }}
     }}
 
+    /* DISEÑO DEL MENÚ LATERAL (BOTONES) */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{ display: block !important; margin-left: auto !important; margin-right: auto !important; width: 50% !important; align-self: center !important; }}
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
     section[data-testid="stSidebar"] button {{ border: none !important; color: white !important; font-weight: 600 !important; box-shadow: none !important; width: 100% !important; transition: all 0.2s !important; }}
     section[data-testid="stSidebar"] button:hover {{ filter: brightness(1.15) !important; z-index: 10 !important; }}
 
+    /* Colores Específicos Menú */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
@@ -269,7 +276,6 @@ def determinar_lugar(row):
 def mostrar_perfil():
     st.header("👤 Completar Perfil")
     
-    # Cargamos el perfil actual si existe
     p = st.session_state.perfil if st.session_state.perfil else {}
     
     c1, c2 = st.columns([1, 2])
@@ -288,10 +294,8 @@ def mostrar_perfil():
             img_bytes = buf.getvalue()
             
     with c2:
-        # AQUÍ ESTÁ LA MAGIA: Quitamos el "st.form" para que el botón siempre responda
         n = st.text_input("Nombre Completo", value=p.get('nombre_completo', ''))
         
-        # Manejo seguro de la edad por si viene vacía
         edad_actual = p.get('edad')
         try:
             edad_actual = int(edad_actual) if edad_actual is not None else 18
@@ -300,24 +304,20 @@ def mostrar_perfil():
             
         e = st.number_input("Edad", 5, 99, value=edad_actual)
         
-        # Selectbox Categoría
         cat_val = p.get('categoria')
         cat_idx = CATEGORIAS_POOMSAE.index(cat_val) if cat_val in CATEGORIAS_POOMSAE else 0
         cat = st.selectbox("Categoría", CATEGORIAS_POOMSAE, index=cat_idx)
         
-        # Selectbox Grado
         gr_val = p.get('grado')
         gr_idx = GRADOS_TKD.index(gr_val) if gr_val in GRADOS_TKD else 0
         gr = st.selectbox("Grado", GRADOS_TKD, index=gr_idx)
         
-        # Radio Género
         gen_val = p.get('genero')
         gen_idx = ["Masculino", "Femenino"].index(gen_val) if gen_val in ["Masculino", "Femenino"] else 0
         gen = st.radio("Género", ["Masculino", "Femenino"], index=gen_idx, horizontal=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Botón de guardado normal que funciona 100% de las veces
         if st.button("💾 Guardar Cambios", type="primary", use_container_width=True): 
             actualizar_perfil({
                 "nombre_completo": n, 
@@ -326,7 +326,6 @@ def mostrar_perfil():
                 "grado": gr, 
                 "genero": gen
             }, img_bytes)
-
 
 def mostrar_formulario_registro():
     st.header("📝 Nuevo Torneo (Resultados)")
