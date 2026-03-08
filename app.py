@@ -66,7 +66,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (LIMPIO, SIN TOCAR EL HEADER NI EL MENÚ) ---
+# --- 4. CSS MAESTRO (SIN INVENTOS EN EL HEADER, MENÚ NATIVO LIBERADO) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -76,7 +76,14 @@ st.markdown(f"""
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
 
-    /* OCULTAR SOLO LAS INSIGNIAS DE ABAJO Y EL FOOTER */
+    /* HEADER NATIVO DE STREAMLIT (Solo le damos fondo oscuro, no lo bloqueamos) */
+    header[data-testid="stHeader"] {{
+        background-color: #1f202b !important;
+    }}
+
+    /* OCULTAR BOTONES INNECESARIOS (Github, Corona, Footer) */
+    .stDeployButton, #MainMenu, [data-testid="stToolbar"], 
+    [data-testid="stDecoration"], [data-testid="stStatusWidget"],
     footer, .viewerBadge_container__1QSob, div[class^="viewerBadge_"] {{
         display: none !important;
         visibility: hidden !important;
@@ -167,20 +174,28 @@ def cargar_perfil():
 def actualizar_perfil(datos, archivo_foto_bytes):
     user_id = st.session_state.user.id
     foto_url = st.session_state.perfil.get('foto_url') if st.session_state.perfil else None
+    
     if archivo_foto_bytes:
         try:
             file_path = f"{user_id}/avatar.jpg"
             supabase.storage.from_("avatars").upload(file_path, archivo_foto_bytes, {"content-type": "image/jpeg", "upsert": "true"})
             foto_url = supabase.storage.from_("avatars").get_public_url(file_path) + f"?t={int(time.time())}"
-        except: pass
+        except Exception as e:
+            st.error(f"Error al subir la foto: {e}")
+            
     try:
         with st.spinner("Guardando perfil..."):
-            supabase.table("perfiles").update({**datos, "foto_url": foto_url}).eq("id", user_id).execute()
+            datos_actualizados = {**datos}
+            if foto_url:
+                datos_actualizados["foto_url"] = foto_url
+                
+            supabase.table("perfiles").update(datos_actualizados).eq("id", user_id).execute()
             st.success("✅ Perfil actualizado")
             cargar_perfil()
             time.sleep(1)
             st.rerun()
-    except: pass
+    except Exception as e: 
+        st.error(f"Error al guardar en base de datos: {e}")
 
 def get_lista_rivales():
     try:
@@ -271,12 +286,21 @@ def mostrar_perfil():
             img_bytes = buf.getvalue()
     with c2:
         with st.form("fp"):
+            # CORRECCIÓN AQUÍ: Aseguramos que la llave en el diccionario sea "nombre_completo"
             n = st.text_input("Nombre", value=p.get('nombre_completo', ''))
             e = st.number_input("Edad", 5, 99, value=p.get('edad', 18))
             cat = st.selectbox("Categoría", CATEGORIAS_POOMSAE, index=CATEGORIAS_POOMSAE.index(p.get('categoria')) if p.get('categoria') in CATEGORIAS_POOMSAE else 0)
             gr = st.selectbox("Grado", GRADOS_TKD, index=GRADOS_TKD.index(p.get('grado')) if p.get('grado') in GRADOS_TKD else 0)
             gen = st.radio("Género", ["Masculino", "Femenino"], index=["Masculino", "Femenino"].index(p.get('genero')) if p.get('genero') in ["Masculino", "Femenino"] else 0, horizontal=True)
-            if st.form_submit_button("Guardar"): actualizar_perfil({"nombre": n, "edad": e, "categoria": cat, "grado": gr, "genero": gen}, img_bytes)
+            
+            if st.form_submit_button("Guardar"): 
+                actualizar_perfil({
+                    "nombre_completo": n, 
+                    "edad": e, 
+                    "categoria": cat, 
+                    "grado": gr, 
+                    "genero": gen
+                }, img_bytes)
 
 def mostrar_formulario_registro():
     st.header("📝 Nuevo Torneo (Resultados)")
