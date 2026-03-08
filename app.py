@@ -66,7 +66,7 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
-# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA DE DISEÑO) ---
+# --- 4. CSS MAESTRO (SOLUCIÓN DEFINITIVA DEL MENÚ MÓVIL) ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -84,19 +84,31 @@ st.markdown(f"""
         display: none !important; visibility: hidden !important; 
     }}
 
-    /* HEADER NATIVO TRANSPARENTE PERO CON BOTÓN BLANCO */
+    /* ==================================================
+       EL TRUCO PARA EL MENÚ HAMBURGUESA
+       ================================================== */
+    
+    /* 1. Ponemos el header de Streamlit en la CAPA MÁS ALTA y lo hacemos transparente */
     header[data-testid="stHeader"] {{
         background-color: transparent !important;
-        box-shadow: none !important;
+        z-index: 999999 !important; /* Capa más alta */
     }}
-    /* Pintamos el icono del menú de hamburguesa de color blanco */
+    
+    /* 2. Forzamos a que el ícono de las tres rayitas sea BLANCO y visible */
+    header[data-testid="stHeader"] button {{
+        color: white !important;
+    }}
     header[data-testid="stHeader"] button svg {{
         fill: white !important;
-        color: white !important;
         stroke: white !important;
     }}
 
-    /* TU HEADER FALSO (LOGO CENTRADO) */
+    /* 3. Aseguramos que el menú lateral se abra por encima del header */
+    section[data-testid="stSidebar"] {{
+        z-index: 9999999 !important; 
+    }}
+
+    /* 4. Tu barra negra con el logo va en la capa DE ABAJO del menú nativo */
     .custom-header {{
         position: fixed;
         top: 0;
@@ -108,7 +120,7 @@ st.markdown(f"""
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 999; /* Se mantiene por debajo del botón del menú */
+        z-index: 999990 !important; /* Justo por debajo de 999999 */
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }}
     .custom-header img {{
@@ -116,8 +128,10 @@ st.markdown(f"""
         object-fit: contain;
     }}
 
-    /* Empujar contenido hacia abajo */
+    /* Empujar contenido hacia abajo para no tapar lo principal */
     .block-container {{ padding-top: 5rem !important; }}
+
+    /* ================================================== */
 
     /* LOGO DEL LOGIN (50% PC / 30% MOVIL) */
     .logo-login-container {{ display: flex; justify-content: center; width: 100%; margin-bottom: 20px; }}
@@ -126,7 +140,7 @@ st.markdown(f"""
         .logo-login-img {{ width: 30% !important; }}
     }}
 
-    /* DISEÑO DEL MENÚ LATERAL (BOTONES) */
+    /* DISEÑO DEL MENÚ LATERAL (BOTONES UNIDOS) */
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{ display: block !important; margin-left: auto !important; margin-right: auto !important; width: 50% !important; align-self: center !important; }}
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
     section[data-testid="stSidebar"] button {{ border: none !important; color: white !important; font-weight: 600 !important; box-shadow: none !important; width: 100% !important; transition: all 0.2s !important; }}
