@@ -66,6 +66,12 @@ LISTA_POOMSAE_OFICIAL = [
     "Koryo", "Keumgang", "Taebek", "Pyongwon", "Sipjin", "Jitae", "Chonkwon", "Hansu"
 ]
 
+LUGARES_COMPETICION = [
+    "1er Lugar", "2do Lugar", "3er Lugar", "4to Lugar", "5to Lugar", 
+    "6to Lugar", "7mo Lugar", "8vo Lugar", "9no Lugar", "10mo Lugar", 
+    "Participación"
+]
+
 # --- 4. CSS MAESTRO ---
 st.markdown(f"""
 <style>
@@ -207,31 +213,52 @@ def guardar_evento_agenda(nombre, inicio, fin, estatus, comentarios):
 def calcular_medallas(df_completo):
     conteo = {"Oro": 0, "Plata": 0, "Bronce": 0, "Participacion": 0}
     if df_completo.empty: return conteo
+    
     torneos_ids = df_completo['torneo_id'].unique()
     for t_id in torneos_ids:
         df_t = df_completo[df_completo['torneo_id'] == t_id]
-        rondas_jugadas = df_t['ronda'].unique()
-        ronda_max = ""
-        if any("Final" in r for r in rondas_jugadas): ronda_max = "Final"
-        elif any("Semi" in r for r in rondas_jugadas): ronda_max = "Semi"
-        else: ronda_max = "Otra"
-        df_ronda_final = df_t[df_t['ronda'].str.contains(ronda_max)]
-        es_ganador = "Ganador" in df_ronda_final['resultado'].values
-        if ronda_max == "Final":
-            if es_ganador: conteo["Oro"] += 1
-            else: conteo["Plata"] += 1
-        elif ronda_max == "Semi":
-            if es_ganador: conteo["Plata"] += 1 
-            else: conteo["Bronce"] += 1
-        else:
+        resultados = df_t['resultado'].astype(str).tolist()
+        rondas = df_t['ronda'].astype(str).tolist()
+        
+        # Nueva Lógica de Medallas (Basada en el Lugar explícito seleccionado)
+        if any('1er Lugar' in r for r in resultados):
+            conteo["Oro"] += 1
+        elif any('2do Lugar' in r for r in resultados):
+            conteo["Plata"] += 1
+        elif any('3er Lugar' in r for r in resultados) or any('4to Lugar' in r for r in resultados):
+            conteo["Bronce"] += 1
+        elif any('Lugar' in r for r in resultados) or any('Participación' in r for r in resultados):
             conteo["Participacion"] += 1
+        else:
+            # Lógica antigua de rescate (para torneos registrados antes de esta actualización)
+            ronda_max = ""
+            if any("Final" in r for r in rondas): ronda_max = "Final"
+            elif any("Semi" in r for r in rondas): ronda_max = "Semi"
+            else: ronda_max = "Otra"
+
+            df_ronda_final = df_t[df_t['ronda'].str.contains(ronda_max)]
+            es_ganador = "Ganador" in df_ronda_final['resultado'].values
+            if ronda_max == "Final":
+                if es_ganador: conteo["Oro"] += 1
+                else: conteo["Plata"] += 1
+            elif ronda_max == "Semi":
+                if es_ganador: conteo["Plata"] += 1 
+                else: conteo["Bronce"] += 1
+            else:
+                conteo["Participacion"] += 1
+                
     return conteo
 
 def determinar_lugar(row):
-    ronda = row['Ronda'] if 'Ronda' in row else row['ronda']
-    res = row['Resultado_Raw']
-    if "Final" in ronda: return "🥇 1er Lugar" if res == "Ganador" else "🥈 2do Lugar"
-    elif "Semi" in ronda: return "🥈 Plata" if res == "Ganador" else "🥉 3er Lugar"
+    # Extraer el lugar de la nueva columna resultado si existe
+    res_raw = str(row.get('Resultado_Raw', ''))
+    if " - " in res_raw:
+        return res_raw.split(" - ")[1]
+        
+    # Lógica antigua de rescate
+    ronda = str(row.get('ronda', ''))
+    if "Final" in ronda: return "🥇 1er Lugar" if res_raw == "Ganador" else "🥈 2do Lugar"
+    elif "Semi" in ronda: return "🥈 Plata" if res_raw == "Ganador" else "🥉 3er Lugar"
     elif "4tos" in ronda: return "5to - 8vo Lugar"
     else: return "Participación"
 
@@ -273,17 +300,20 @@ def mostrar_perfil():
         if st.button("💾 Guardar Cambios", type="primary", use_container_width=True): 
             actualizar_perfil({"nombre_completo": n, "edad": int(e), "categoria": cat, "grado": gr, "genero": gen}, img_bytes)
 
+
 def mostrar_formulario_registro():
-    st.header("📝 Nuevo Torneo")
-    st.info("Ingresa las notas y verás el cálculo final en tiempo real.")
+    st.header("📝 Nuevo Torneo (Resultados)")
+    st.info("Ingresa tus notas P1 y P2. Recuerda que el 1er lugar es Ganador y el resto es Perdedor para las métricas.")
     rivales_existentes = get_lista_rivales()
-    c1, c2, c3 = st.columns(3)
+    
+    # 1. Ajuste Visual: Modalidad visible como selectbox
+    c1, c2, c3, c4 = st.columns(4)
     nom = c1.text_input("Nombre del torneo", key="t_nombre")
     fec = c2.date_input("Fecha", date.today(), key="t_fecha")
     cat = c3.selectbox("Categoría", ["Elite", "Liga", "G2", "Open"], key="t_cat")
-    col_mod, col_rond = st.columns(2)
-    mod = col_mod.radio("Modalidad", ["Individual", "Pareja", "Equipo"], horizontal=True, key="t_mod")
-    n_rondas = col_rond.number_input("Rondas", 1, 5, 1, key="t_rondas")
+    mod = c4.selectbox("Modalidad", ["Individual", "Pareja", "Equipo", "Freestyle"], key="t_mod")
+    
+    n_rondas = st.number_input("Cantidad de rondas a registrar", 1, 5, 1, key="t_rondas")
     st.divider()
     
     datos_rondas = []
@@ -291,41 +321,55 @@ def mostrar_formulario_registro():
     
     for i in range(n_rondas):
         st.subheader(f"🥋 Ronda {i+1}")
-        cr1, cr2 = st.columns(2)
+        cr1, cr2, cr3 = st.columns(3)
         tr = cr1.selectbox(f"Fase {i+1}", tipos, key=f"tr_{i}")
-        opcion_rival = cr2.selectbox(f"Rival (Ronda {i+1})", ["➕ Nuevo Rival..."] + rivales_existentes, key=f"sel_riv_{i}")
-        nr = cr2.text_input("Escribe nombre del rival", key=f"text_riv_{i}") if opcion_rival == "➕ Nuevo Rival..." else opcion_rival
+        
+        # 2. Selector de Puesto / Lugar
+        lugar_obtenido = cr2.selectbox(f"Lugar en {tr}", LUGARES_COMPETICION, key=f"lugar_{i}")
+        
+        opcion_rival = cr3.selectbox(f"Rival (Ronda {i+1})", ["➕ Nuevo Rival..."] + rivales_existentes, key=f"sel_riv_{i}")
+        if opcion_rival == "➕ Nuevo Rival...": 
+            nr = st.text_input(f"Escribe nombre del rival (Ronda {i+1})", key=f"text_riv_{i}")
+        else: 
+            nr = opcion_rival
+            
         comentarios = st.text_area(f"Comentarios Ronda {i+1}", key=f"comm_{i}")
 
         tp1, tp2 = st.tabs(["Poomsae 1", "Poomsae 2"])
         with tp1:
             np1 = st.selectbox("Poomsae", LISTA_POOMSAE_OFICIAL, key=f"np1_{i}")
-            c1, c2, c3 = st.columns(3)
-            mt1 = c1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt1_{i}")
-            mp1 = c2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp1_{i}")
+            c_m1, c_m2, c_m3 = st.columns(3)
+            mt1 = c_m1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt1_{i}")
+            mp1 = c_m2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp1_{i}")
             total_yo_1 = mt1 + mp1
-            c3.metric("Final", f"{total_yo_1:.2f}")
-            rc1, rc2, rc3 = st.columns(3)
-            rt1 = rc1.number_input("Rival técnica", 0.0, 4.0, step=0.01, key=f"rt1_{i}")
-            rp1 = rc2.number_input("Rival presentación", 0.0, 6.0, step=0.01, key=f"rp1_{i}")
+            c_m3.metric("Final P1", f"{total_yo_1:.2f}")
+            
+            c_r1, c_r2, c_r3 = st.columns(3)
+            rt1 = c_r1.number_input("Rival técnica", 0.0, 4.0, step=0.01, key=f"rt1_{i}")
+            rp1 = c_r2.number_input("Rival presentación", 0.0, 6.0, step=0.01, key=f"rp1_{i}")
             total_riv_1 = rt1 + rp1
-            rc3.metric("Final", f"{total_riv_1:.2f}")
+            c_r3.metric("Final P1 (Rival)", f"{total_riv_1:.2f}")
+            
         with tp2:
             np2 = st.selectbox("Poomsae", LISTA_POOMSAE_OFICIAL, key=f"np2_{i}")
-            c1, c2, c3 = st.columns(3)
-            mt2 = c1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt2_{i}")
-            mp2 = c2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp2_{i}")
+            c_m1, c_m2, c_m3 = st.columns(3)
+            mt2 = c_m1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt2_{i}")
+            mp2 = c_m2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp2_{i}")
             total_yo_2 = mt2 + mp2
-            c3.metric("Final", f"{total_yo_2:.2f}")
-            rc1, rc2, rc3 = st.columns(3)
-            rt2 = rc1.number_input("Rival técnica", 0.0, 4.0, step=0.01, key=f"rt2_{i}")
-            rp2 = rc2.number_input("Rival presentación", 0.0, 6.0, step=0.01, key=f"rp2_{i}")
+            c_m3.metric("Final P2", f"{total_yo_2:.2f}")
+            
+            c_r1, c_r2, c_r3 = st.columns(3)
+            rt2 = c_r1.number_input("Rival técnica", 0.0, 4.0, step=0.01, key=f"rt2_{i}")
+            rp2 = c_r2.number_input("Rival presentación", 0.0, 6.0, step=0.01, key=f"rp2_{i}")
             total_riv_2 = rt2 + rp2
-            rc3.metric("Final", f"{total_riv_2:.2f}")
+            c_r3.metric("Final P2 (Rival)", f"{total_riv_2:.2f}")
 
-        myt = total_yo_1 + total_yo_2
-        rivt = total_riv_1 + total_riv_2
-        res = "Ganador" if myt > rivt else ("Perdedor" if myt < rivt else "Empate")
+        # 3. Lógica de Victoria estricta: Solo 1er Lugar = Ganador.
+        if lugar_obtenido == "1er Lugar":
+            res = f"Ganador - {lugar_obtenido}"
+        else:
+            res = f"Perdedor - {lugar_obtenido}"
+            
         datos_rondas.append({"ronda": f"{tr} (P1)", "nombre": np1, "mi_tec": mt1, "mi_pres": mp1, "mi_total": total_yo_1, "rival_nombre": nr, "rival_tec": rt1, "rival_pres": rp1, "rival_total": total_riv_1, "resultado": res, "comentarios": comentarios})
         datos_rondas.append({"ronda": f"{tr} (P2)", "nombre": np2, "mi_tec": mt2, "mi_pres": mp2, "mi_total": total_yo_2, "rival_nombre": nr, "rival_tec": rt2, "rival_pres": rp2, "rival_total": total_riv_2, "resultado": res, "comentarios": comentarios})
 
@@ -335,9 +379,14 @@ def mostrar_formulario_registro():
             exito = guardar_torneo({"nombre": nom, "fecha": fec, "categoria": cat, "modalidad": mod}, datos_rondas)
             if exito:
                 st.success("¡Torneo guardado exitosamente!")
+                keys_a_borrar = ["t_nombre", "t_fecha", "t_cat", "t_mod", "t_rondas"]
+                for key in list(st.session_state.keys()):
+                    if key in keys_a_borrar or any(x in key for x in ["np1_", "mt1_", "mp1_", "rt1_", "rp1_", "np2_", "mt2_", "mp2_", "rt2_", "rp2_", "tr_", "nr_", "sel_riv_", "text_riv_", "comm_", "lugar_"]):
+                        del st.session_state[key]
                 time.sleep(1.5)
                 st.rerun()
         else: st.warning("⚠️ Debes escribir el nombre del torneo.")
+
 
 def mostrar_calendario():
     st.title("📅 Calendario de Torneos")
@@ -406,16 +455,13 @@ def mostrar_calendario():
     calendar_options = {"headerToolbar": {"left": "today prev,next", "center": "title", "right": "dayGridMonth,listMonth"}, "buttonText": {"today": "Hoy", "month": "Mes", "list": "Lista"}, "initialView": "dayGridMonth", "locale": "es", "height": 800}
     if calendar: st_calendar = calendar(events=calendar_events, options=calendar_options)
 
-# ==========================================
-# 7. FUNCIÓN POTENCIADA: BASE DE TORNEOS
-# ==========================================
+
 def mostrar_historial_editor():
     st.header("📝 Base de Torneos")
     st.info("Aquí puedes editar todos los datos de tus torneos, ver los promedios finales y eliminar los que no necesites.")
     user_id = st.session_state.user.id
     
     try:
-        # Cargar todos los torneos
         torneos_resp = supabase.table("torneos").select("*").eq("user_id", user_id).order("fecha_torneo", desc=True).execute()
         df_torneos = pd.DataFrame(torneos_resp.data)
         
@@ -423,7 +469,6 @@ def mostrar_historial_editor():
             st.warning("No tienes torneos registrados.")
             return
         
-        # Opciones para el desplegable (Añadiendo "Ver Todos" al inicio)
         opciones_lista = ["Ver Todos"] + [f"{row['nombre_torneo']} ({row['fecha_torneo']})" for idx, row in df_torneos.iterrows()]
         mapa_torneos = {f"{row['nombre_torneo']} ({row['fecha_torneo']})": row['id'] for idx, row in df_torneos.iterrows()}
         
@@ -441,7 +486,7 @@ def mostrar_historial_editor():
                 "nombre_torneo": "Nombre del Torneo",
                 "fecha_torneo": st.column_config.DateColumn("Fecha"),
                 "categoria": st.column_config.SelectboxColumn("Categoría", options=["Elite", "Liga", "G2", "Open"]),
-                "modalidad": st.column_config.SelectboxColumn("Modalidad", options=["Individual", "Pareja", "Equipo"])
+                "modalidad": st.column_config.SelectboxColumn("Modalidad", options=["Individual", "Pareja", "Equipo", "Freestyle"])
             }
             
             edited_torneos = st.data_editor(df_torneos_edit, column_config=col_config_torneos, use_container_width=True, hide_index=True)
@@ -458,39 +503,36 @@ def mostrar_historial_editor():
                     st.rerun()
 
             st.divider()
-            st.subheader("📊 Promedios Finales por Ronda (Todos los Torneos)")
             
-            # Cargar todos los registros para promedios
+            # --- PROMEDIOS FINALES (TODOS) ---
+            st.subheader("📊 Promedios Finales por Ronda (Todos los Torneos)")
             registros_resp = supabase.table("registros_poomsae").select("*, torneos(nombre_torneo)").eq("user_id", user_id).execute()
             df_reg_all = pd.DataFrame(registros_resp.data)
             
             if not df_reg_all.empty:
                 df_reg_all['Torneo'] = df_reg_all['torneos'].apply(lambda x: x['nombre_torneo'] if x else '-')
                 df_promedios = df_reg_all.copy()
-                
-                # Extraer "Ronda Base" (quita el "(P1)" y "(P2)") para poder promediar la ronda
                 df_promedios['Ronda Base'] = df_promedios['ronda'].apply(lambda x: str(x).split(" (")[0])
                 
                 promedios_all = df_promedios.groupby(['Torneo', 'Ronda Base', 'nombre_rival']).agg({
                     'mi_nota_final': 'mean',
-                    'rival_nota_final': 'mean'
+                    'rival_nota_final': 'mean',
+                    'resultado': 'first' # Tomamos el resultado para mostrarlo
                 }).reset_index()
 
-                def winner_label(row):
-                    if row['mi_nota_final'] > row['rival_nota_final']: return "✅ Ganador"
-                    elif row['mi_nota_final'] < row['rival_nota_final']: return "❌ Perdedor"
-                    return "➖ Empate"
-                
-                promedios_all['Resultado Final'] = promedios_all.apply(winner_label, axis=1)
                 promedios_all = promedios_all.rename(columns={
-                    'nombre_rival': 'Rival', 'mi_nota_final': 'Mi Nota Final (Ronda)', 'rival_nota_final': 'Nota Final Rival'
+                    'nombre_rival': 'Rival', 'mi_nota_final': 'Mi Promedio Ronda', 
+                    'rival_nota_final': 'Promedio Rival', 'resultado': 'Lugar Obtenido'
                 })
                 
-                st.dataframe(promedios_all.style.format({'Mi Nota Final (Ronda)': "{:.2f}", 'Nota Final Rival': "{:.2f}"}), use_container_width=True, hide_index=True)
+                st.dataframe(promedios_all.style.format({'Mi Promedio Ronda': "{:.2f}", 'Promedio Rival': "{:.2f}"}), use_container_width=True, hide_index=True)
                 
             st.divider()
             st.subheader("✏️ Editar Todos los Poomsaes Individuales")
             if not df_reg_all.empty:
+                # Extraer "Lugar" del resultado para poder editarlo fácilmente
+                df_reg_all['Lugar'] = df_reg_all['resultado'].apply(lambda x: str(x).split(" - ")[1] if " - " in str(x) else ("1er Lugar" if "Ganador" in str(x) else "Participación"))
+                
                 col_config_reg = {
                     "id": None, "user_id": None, "torneo_id": None, "created_at": None, "torneos": None, "Torneo": "Torneo",
                     "nombre_poomsae": "Poomsae", "ronda": "Ronda",
@@ -499,7 +541,8 @@ def mostrar_historial_editor():
                     "mi_nota_final": None, "nombre_rival": "Rival",
                     "rival_nota_tecnica": st.column_config.NumberColumn("Riv. Técnica", min_value=0.0, max_value=4.0, step=0.01),
                     "rival_nota_presentacion": st.column_config.NumberColumn("Riv. Pres.", min_value=0.0, max_value=6.0, step=0.01),
-                    "rival_nota_final": None, "resultado": None, "comentarios": "Comentarios"
+                    "rival_nota_final": None, "resultado": None, "comentarios": "Comentarios",
+                    "Lugar": st.column_config.SelectboxColumn("Lugar Obtenido", options=LUGARES_COMPETICION)
                 }
                 edited_regs = st.data_editor(df_reg_all, column_config=col_config_reg, use_container_width=True, hide_index=True)
                 
@@ -508,7 +551,9 @@ def mostrar_historial_editor():
                         for index, row in edited_regs.iterrows():
                             mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
                             riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
-                            res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
+                            lugar = row.get('Lugar', 'Participación')
+                            res = f"Ganador - {lugar}" if lugar == "1er Lugar" else f"Perdedor - {lugar}"
+                            
                             update_data = {
                                 "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
                                 "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
@@ -536,7 +581,7 @@ def mostrar_historial_editor():
             cats = ["Elite", "Liga", "G2", "Open"]
             t_cat = c3.selectbox("Categoría", cats, index=cats.index(torneo_info['categoria']) if torneo_info['categoria'] in cats else 0)
             
-            mods = ["Individual", "Pareja", "Equipo"]
+            mods = ["Individual", "Pareja", "Equipo", "Freestyle"]
             t_mod = c4.selectbox("Modalidad", mods, index=mods.index(torneo_info['modalidad']) if torneo_info['modalidad'] in mods else 0)
 
             # --- BOTONES DE GUARDAR O ELIMINAR ---
@@ -551,14 +596,11 @@ def mostrar_historial_editor():
                     st.rerun()
 
             with col_btn_borrar:
-                # Checkbox de seguridad para evitar borrar el torneo sin querer
                 eliminar_check = st.checkbox("Habilitar botón de borrado")
                 if eliminar_check:
                     if st.button("🗑️ Eliminar Torneo Definitivamente", type="primary", use_container_width=True):
                         with st.spinner("Eliminando torneo y sus registros..."):
-                            # Borramos los poomsaes primero
                             supabase.table("registros_poomsae").delete().eq("torneo_id", torneo_id_selec).execute()
-                            # Borramos el torneo
                             supabase.table("torneos").delete().eq("id", torneo_id_selec).execute()
                         st.success("Torneo eliminado correctamente.")
                         time.sleep(1)
@@ -566,36 +608,32 @@ def mostrar_historial_editor():
 
             st.divider()
             
-            # Cargar los poomsaes de este torneo
             registros_resp = supabase.table("registros_poomsae").select("*").eq("torneo_id", torneo_id_selec).execute()
             df_registros = pd.DataFrame(registros_resp.data)
             
             if not df_registros.empty:
-                st.subheader("📊 NOTA FINAL (Promedio por Ronda)")
+                st.subheader("📊 NOTA FINAL (Promedio de la Ronda)")
                 df_promedios = df_registros.copy()
-                # Extraemos la "Ronda Base" para promediar el P1 y P2 de la misma ronda
                 df_promedios['Ronda Base'] = df_promedios['ronda'].apply(lambda x: str(x).split(" (")[0])
                 
                 prom_group = df_promedios.groupby(['Ronda Base', 'nombre_rival']).agg({
                     'mi_nota_final': 'mean',
-                    'rival_nota_final': 'mean'
+                    'rival_nota_final': 'mean',
+                    'resultado': 'first'
                 }).reset_index()
 
-                def win_label(row):
-                    if row['mi_nota_final'] > row['rival_nota_final']: return "✅ Ganador"
-                    elif row['mi_nota_final'] < row['rival_nota_final']: return "❌ Perdedor"
-                    return "➖ Empate"
-                
-                prom_group['Resultado Final de Ronda'] = prom_group.apply(win_label, axis=1)
                 prom_group = prom_group.rename(columns={
-                    'nombre_rival': 'Rival', 'mi_nota_final': 'Mi Nota Final (Ronda)', 'rival_nota_final': 'Nota Final Rival'
+                    'nombre_rival': 'Rival', 'mi_nota_final': 'Mi Promedio Ronda', 
+                    'rival_nota_final': 'Promedio Rival', 'resultado': 'Lugar Obtenido'
                 })
                 
-                st.dataframe(prom_group.style.format({'Mi Nota Final (Ronda)': "{:.2f}", 'Nota Final Rival': "{:.2f}"}), use_container_width=True, hide_index=True)
+                st.dataframe(prom_group.style.format({'Mi Promedio Ronda': "{:.2f}", 'Promedio Rival': "{:.2f}"}), use_container_width=True, hide_index=True)
                 st.divider()
 
-            st.subheader("✏️ Editar Registros de Poomsaes")
+            st.subheader("✏️ Editar Poomsaes Individuales")
             if not df_registros.empty:
+                df_registros['Lugar'] = df_registros['resultado'].apply(lambda x: str(x).split(" - ")[1] if " - " in str(x) else ("1er Lugar" if "Ganador" in str(x) else "Participación"))
+                
                 col_config = {
                     "id": None, "user_id": None, "torneo_id": None, "created_at": None,
                     "nombre_poomsae": "Poomsae", "ronda": "Ronda",
@@ -604,7 +642,8 @@ def mostrar_historial_editor():
                     "mi_nota_final": None, "nombre_rival": "Nombre Rival",
                     "rival_nota_tecnica": st.column_config.NumberColumn("Riv. Técnica", min_value=0.0, max_value=4.0, step=0.01),
                     "rival_nota_presentacion": st.column_config.NumberColumn("Riv. Pres.", min_value=0.0, max_value=6.0, step=0.01),
-                    "rival_nota_final": None, "resultado": None, "comentarios": "Comentarios"
+                    "rival_nota_final": None, "resultado": None, "comentarios": "Comentarios",
+                    "Lugar": st.column_config.SelectboxColumn("Lugar Obtenido", options=LUGARES_COMPETICION)
                 }
                 
                 edited_df = st.data_editor(df_registros, column_config=col_config, use_container_width=True, hide_index=True)
@@ -614,7 +653,9 @@ def mostrar_historial_editor():
                         for index, row in edited_df.iterrows():
                             mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
                             riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
-                            res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
+                            lugar = row.get('Lugar', 'Participación')
+                            res = f"Ganador - {lugar}" if lugar == "1er Lugar" else f"Perdedor - {lugar}"
+                            
                             update_data = {
                                 "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
                                 "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
@@ -627,6 +668,7 @@ def mostrar_historial_editor():
                         st.rerun()
 
     except Exception as e: st.error(f"Error cargando historial: {e}")
+
 
 def mostrar_dashboard():
     user_id = st.session_state.user.id
@@ -672,11 +714,12 @@ def mostrar_dashboard():
             st.divider()
             c_win, c_avg, c_med = st.columns(3)
             total_matches = len(df_gen)
-            wins = len(df_gen[df_gen['resultado'] == 'Ganador']) if total_matches > 0 else 0
+            # Solo los poomsaes marcados como "Ganador" (que ahora es exclusivamente 1er Lugar) cuentan
+            wins = len(df_gen[df_gen['resultado'].astype(str).str.contains('Ganador')]) if total_matches > 0 else 0
             winrate = (wins / total_matches * 100) if total_matches > 0 else 0
             promedio = df_gen['Nota Final'].mean() if total_matches > 0 else 0
 
-            c_win.metric("Winrate", f"{winrate:.1f}%", f"{wins} Vic / {total_matches} Tot")
+            c_win.metric("Winrate (1er Lugar)", f"{winrate:.1f}%", f"{wins} Oros / {total_matches} Rondas")
             c_avg.metric("Promedio Nota", f"{promedio:.2f}")
             conteo_medallas = calcular_medallas(df_gen)
             c_med.markdown(f"🥇 **{conteo_medallas['Oro']}** Oro &nbsp; 🥈 **{conteo_medallas['Plata']}** Plata <br>🥉 **{conteo_medallas['Bronce']}** Bronce &nbsp; 🟠 **{conteo_medallas['Participacion']}** Part.", unsafe_allow_html=True)
