@@ -23,7 +23,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNCIÓN AUXILIAR: LOGO A BASE64 (Solo para el Login) ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as image_file:
@@ -34,7 +33,7 @@ def get_image_base64(path):
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
-# --- 2. CONEXIÓN BASE DE DATOS (MÉTODO LIGERO PARA MÓVILES) ---
+# --- 2. CONEXIÓN BASE DE DATOS ---
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 
@@ -71,39 +70,17 @@ st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
-
-    /* FONDO OSCURO GLOBAL */
     .stApp {{ background-color: #1f202b !important; }}
     div[data-testid="stDialog"] {{ background-color: #1f202b !important; }}
-
-    /* HEADER DE STREAMLIT TRANSPARENTE */
-    header[data-testid="stHeader"] {{
-        background-color: transparent !important;
-    }}
-
-    /* OCULTAR SÓLO LAS COSAS MOLESTAS (Sin tocar el menú ni la barra de herramientas) */
-    .stDeployButton, footer, 
-    .viewerBadge_container__1QSob, 
-    div[class^="viewerBadge_"], 
-    div[class^="styles_viewerBadge"] {{
-        display: none !important;
-        visibility: hidden !important;
-    }}
-
-    /* LOGO DEL LOGIN (50% PC / 30% MOVIL) */
+    header[data-testid="stHeader"] {{ background-color: #1f202b !important; }}
+    .stDeployButton, footer, .viewerBadge_container__1QSob, div[class^="viewerBadge_"] {{ display: none !important; visibility: hidden !important; }}
     .logo-login-container {{ display: flex; justify-content: center; width: 100%; margin-bottom: 20px; }}
     .logo-login-img {{ width: 50%; max-width: 300px; height: auto; object-fit: contain; }}
-    @media (max-width: 768px) {{
-        .logo-login-img {{ width: 30% !important; }}
-    }}
-
-    /* DISEÑO DEL MENÚ LATERAL (BOTONES) */
+    @media (max-width: 768px) {{ .logo-login-img {{ width: 30% !important; }} }}
     section[data-testid="stSidebar"] div[data-testid="stImage"] img {{ display: block !important; margin-left: auto !important; margin-right: auto !important; width: 50% !important; align-self: center !important; }}
     section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
     section[data-testid="stSidebar"] button {{ border: none !important; color: white !important; font-weight: 600 !important; box-shadow: none !important; width: 100% !important; transition: all 0.2s !important; }}
     section[data-testid="stSidebar"] button:hover {{ filter: brightness(1.15) !important; z-index: 10 !important; }}
-
-    /* Colores Específicos Menú */
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) {{ padding-bottom: 20px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(1) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(2) button {{ background-color: #0bb4fa !important; border-radius: 10px 10px 0 0 !important; margin-bottom: 1px !important; }}
@@ -114,7 +91,6 @@ st.markdown(f"""
     section[data-testid="stSidebar"] div.stButton:nth-of-type(6) button {{ background-color: #2b2c35 !important; border-radius: 8px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) {{ padding-top: 10px !important; }}
     section[data-testid="stSidebar"] div.stButton:nth-of-type(7) button {{ background-color: #581818 !important; border-radius: 8px !important; border: 1px solid #ff4b4b !important; }}
-
     div[role="radiogroup"] {{ display: none !important; }}
 </style>
 """, unsafe_allow_html=True)
@@ -125,7 +101,7 @@ if 'perfil' not in st.session_state: st.session_state.perfil = None
 if 'page_selection' not in st.session_state: st.session_state.page_selection = "Dashboard"
 
 # ==========================================
-# 5. FUNCIONES DE LÓGICA 
+# FUNCIONES DE LÓGICA 
 # ==========================================
 
 def login(email, password):
@@ -156,12 +132,9 @@ def sign_up(email, password, full_name):
         st.error(f"Error: {e}")
 
 def logout():
-    try:
-        supabase.auth.sign_out()
-    except:
-        pass
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
+    try: supabase.auth.sign_out()
+    except: pass
+    for key in list(st.session_state.keys()): del st.session_state[key]
     st.query_params.clear()
     st.rerun()
 
@@ -169,10 +142,8 @@ def cargar_perfil():
     if st.session_state.user:
         try:
             data = supabase.table("perfiles").select("*").eq("id", st.session_state.user.id).execute()
-            if data.data: 
-                st.session_state.perfil = data.data[0]
-            else:
-                st.session_state.perfil = {}
+            if data.data: st.session_state.perfil = data.data[0]
+            else: st.session_state.perfil = {}
         except: pass
 
 def actualizar_perfil(datos, archivo_foto_bytes):
@@ -190,9 +161,7 @@ def actualizar_perfil(datos, archivo_foto_bytes):
     try:
         with st.spinner("Guardando perfil..."):
             datos_actualizados = {"id": user_id, **datos}
-            if foto_url:
-                datos_actualizados["foto_url"] = foto_url
-                
+            if foto_url: datos_actualizados["foto_url"] = foto_url
             supabase.table("perfiles").upsert(datos_actualizados).execute()
             st.success("✅ Perfil guardado correctamente.")
             cargar_perfil()
@@ -227,11 +196,7 @@ def guardar_evento_agenda(nombre, inicio, fin, estatus, comentarios):
     user_id = st.session_state.user.id
     try:
         with st.spinner("Agendando..."):
-            data = {
-                "user_id": user_id, "nombre": nombre,
-                "fecha_inicio": str(inicio), "fecha_fin": str(fin),
-                "estatus": estatus, "comentarios": comentarios
-            }
+            data = {"user_id": user_id, "nombre": nombre, "fecha_inicio": str(inicio), "fecha_fin": str(fin), "estatus": estatus, "comentarios": comentarios}
             supabase.table("agenda").insert(data).execute()
             return True
     except Exception as e:
@@ -270,19 +235,15 @@ def determinar_lugar(row):
     else: return "Participación"
 
 # ==========================================
-# 6. PANTALLAS (VISUALES)
+# PANTALLAS VISUALES
 # ==========================================
 
 def mostrar_perfil():
     st.header("👤 Completar Perfil")
-    
     p = st.session_state.perfil if st.session_state.perfil else {}
-    
     c1, c2 = st.columns([1, 2])
     with c1:
-        if p.get('foto_url'): 
-            st.image(p.get('foto_url'), width=150)
-        
+        if p.get('foto_url'): st.image(p.get('foto_url'), width=150)
         uploaded = st.file_uploader("Foto", type=["jpg", "png"])
         img_bytes = None
         if uploaded:
@@ -292,46 +253,29 @@ def mostrar_perfil():
             buf = BytesIO()
             crop.save(buf, format="JPEG")
             img_bytes = buf.getvalue()
-            
     with c2:
         n = st.text_input("Nombre Completo", value=p.get('nombre_completo', ''))
-        
         edad_actual = p.get('edad')
-        try:
-            edad_actual = int(edad_actual) if edad_actual is not None else 18
-        except:
-            edad_actual = 18
-            
+        try: edad_actual = int(edad_actual) if edad_actual is not None else 18
+        except: edad_actual = 18
         e = st.number_input("Edad", 5, 99, value=edad_actual)
-        
         cat_val = p.get('categoria')
         cat_idx = CATEGORIAS_POOMSAE.index(cat_val) if cat_val in CATEGORIAS_POOMSAE else 0
         cat = st.selectbox("Categoría", CATEGORIAS_POOMSAE, index=cat_idx)
-        
         gr_val = p.get('grado')
         gr_idx = GRADOS_TKD.index(gr_val) if gr_val in GRADOS_TKD else 0
         gr = st.selectbox("Grado", GRADOS_TKD, index=gr_idx)
-        
         gen_val = p.get('genero')
         gen_idx = ["Masculino", "Femenino"].index(gen_val) if gen_val in ["Masculino", "Femenino"] else 0
         gen = st.radio("Género", ["Masculino", "Femenino"], index=gen_idx, horizontal=True)
-        
         st.markdown("<br>", unsafe_allow_html=True)
-        
         if st.button("💾 Guardar Cambios", type="primary", use_container_width=True): 
-            actualizar_perfil({
-                "nombre_completo": n, 
-                "edad": int(e), 
-                "categoria": cat, 
-                "grado": gr, 
-                "genero": gen
-            }, img_bytes)
+            actualizar_perfil({"nombre_completo": n, "edad": int(e), "categoria": cat, "grado": gr, "genero": gen}, img_bytes)
 
 def mostrar_formulario_registro():
-    st.header("📝 Nuevo Torneo (Resultados)")
+    st.header("📝 Nuevo Torneo")
     st.info("Ingresa las notas y verás el cálculo final en tiempo real.")
     rivales_existentes = get_lista_rivales()
-    
     c1, c2, c3 = st.columns(3)
     nom = c1.text_input("Nombre del torneo", key="t_nombre")
     fec = c2.date_input("Fecha", date.today(), key="t_fecha")
@@ -348,40 +292,35 @@ def mostrar_formulario_registro():
         st.subheader(f"🥋 Ronda {i+1}")
         cr1, cr2 = st.columns(2)
         tr = cr1.selectbox(f"Fase {i+1}", tipos, key=f"tr_{i}")
-        opcion_rival = cr2.selectbox(f"Seleccionar Rival (Ronda {i+1})", ["➕ Nuevo Rival..."] + rivales_existentes, key=f"sel_riv_{i}")
-        if opcion_rival == "➕ Nuevo Rival...": nr = cr2.text_input(f"Escribe nombre del rival", key=f"text_riv_{i}")
-        else: nr = opcion_rival
+        opcion_rival = cr2.selectbox(f"Rival (Ronda {i+1})", ["➕ Nuevo Rival..."] + rivales_existentes, key=f"sel_riv_{i}")
+        nr = cr2.text_input("Escribe nombre del rival", key=f"text_riv_{i}") if opcion_rival == "➕ Nuevo Rival..." else opcion_rival
         comentarios = st.text_area(f"Comentarios Ronda {i+1}", key=f"comm_{i}")
 
         tp1, tp2 = st.tabs(["Poomsae 1", "Poomsae 2"])
         with tp1:
-            np1 = st.selectbox("Selecciona el poomsae", LISTA_POOMSAE_OFICIAL, key=f"np1_{i}")
-            st.markdown("**🔵 Mis Notas**")
+            np1 = st.selectbox("Poomsae", LISTA_POOMSAE_OFICIAL, key=f"np1_{i}")
             c1, c2, c3 = st.columns(3)
             mt1 = c1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt1_{i}")
             mp1 = c2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp1_{i}")
             total_yo_1 = mt1 + mp1
-            c3.metric(label="Final", value=f"{total_yo_1:.2f}")
-            st.markdown("**🔴 Notas Rival**")
+            c3.metric("Final", f"{total_yo_1:.2f}")
             rc1, rc2, rc3 = st.columns(3)
-            rt1 = rc1.number_input("Rival nota técnica", 0.0, 4.0, step=0.01, key=f"rt1_{i}")
-            rp1 = rc2.number_input("Rival nota presentación", 0.0, 6.0, step=0.01, key=f"rp1_{i}")
+            rt1 = rc1.number_input("Rival técnica", 0.0, 4.0, step=0.01, key=f"rt1_{i}")
+            rp1 = rc2.number_input("Rival presentación", 0.0, 6.0, step=0.01, key=f"rp1_{i}")
             total_riv_1 = rt1 + rp1
-            rc3.metric(label="Final", value=f"{total_riv_1:.2f}")
+            rc3.metric("Final", f"{total_riv_1:.2f}")
         with tp2:
-            np2 = st.selectbox("Selecciona el poomsae", LISTA_POOMSAE_OFICIAL, key=f"np2_{i}")
-            st.markdown("**🔵 Mis Notas**")
+            np2 = st.selectbox("Poomsae", LISTA_POOMSAE_OFICIAL, key=f"np2_{i}")
             c1, c2, c3 = st.columns(3)
             mt2 = c1.number_input("Mi nota técnica", 0.0, 4.0, step=0.01, key=f"mt2_{i}")
             mp2 = c2.number_input("Mi nota presentación", 0.0, 6.0, step=0.01, key=f"mp2_{i}")
             total_yo_2 = mt2 + mp2
-            c3.metric(label="Final", value=f"{total_yo_2:.2f}")
-            st.markdown("**🔴 Notas Rival**")
+            c3.metric("Final", f"{total_yo_2:.2f}")
             rc1, rc2, rc3 = st.columns(3)
-            rt2 = rc1.number_input("Rival nota técnica", 0.0, 4.0, step=0.01, key=f"rt2_{i}")
-            rp2 = rc2.number_input("Rival nota presentación", 0.0, 6.0, step=0.01, key=f"rp2_{i}")
+            rt2 = rc1.number_input("Rival técnica", 0.0, 4.0, step=0.01, key=f"rt2_{i}")
+            rp2 = rc2.number_input("Rival presentación", 0.0, 6.0, step=0.01, key=f"rp2_{i}")
             total_riv_2 = rt2 + rp2
-            rc3.metric(label="Final", value=f"{total_riv_2:.2f}")
+            rc3.metric("Final", f"{total_riv_2:.2f}")
 
         myt = total_yo_1 + total_yo_2
         rivt = total_riv_1 + total_riv_2
@@ -395,17 +334,12 @@ def mostrar_formulario_registro():
             exito = guardar_torneo({"nombre": nom, "fecha": fec, "categoria": cat, "modalidad": mod}, datos_rondas)
             if exito:
                 st.success("¡Torneo guardado exitosamente!")
-                keys_a_borrar = ["t_nombre", "t_fecha", "t_cat", "t_mod", "t_rondas"]
-                for key in list(st.session_state.keys()):
-                    if key in keys_a_borrar or any(x in key for x in ["np1_", "mt1_", "mp1_", "rt1_", "rp1_", "np2_", "mt2_", "mp2_", "rt2_", "rp2_", "tr_", "nr_", "sel_riv_", "text_riv_", "comm_"]):
-                        del st.session_state[key]
                 time.sleep(1.5)
                 st.rerun()
         else: st.warning("⚠️ Debes escribir el nombre del torneo.")
 
 def mostrar_calendario():
     st.title("📅 Calendario de Torneos")
-    
     st.subheader("🛠️ Gestión de Agenda")
     tab_add, tab_edit = st.tabs(["➕ Agregar Evento", "✏️ Editar / Eliminar Eventos"])
 
@@ -415,7 +349,6 @@ def mostrar_calendario():
             evt_nombre = c1.text_input("Nombre del Torneo")
             evt_estatus = c2.selectbox("Estatus", ["Confirmado", "Sin Confirmar", "Internacional"])
             evt_coment = c3.text_input("Comentario Corto")
-            
             c4, c5 = st.columns(2)
             evt_inicio = c4.date_input("Fecha Inicio", date.today())
             evt_fin = c5.date_input("Fecha Fin", date.today())
@@ -426,162 +359,255 @@ def mostrar_calendario():
                         st.success("Evento agregado")
                         time.sleep(1)
                         st.rerun()
-                else:
-                    st.warning("Falta el nombre")
+                else: st.warning("Falta el nombre")
 
     with tab_edit:
-        st.caption("Modifica los datos directamente en la tabla y presiona 'Guardar Cambios' para actualizar o marca la casilla para borrar.")
-        
-        try:
-            user_id = st.session_state.user.id
-            resp = supabase.table("agenda").select("*").eq("user_id", user_id).execute()
-            eventos_db = resp.data
-        except:
-            eventos_db = []
+        try: eventos_db = supabase.table("agenda").select("*").eq("user_id", st.session_state.user.id).execute().data
+        except: eventos_db = []
 
         if eventos_db:
             df_agenda = pd.DataFrame(eventos_db)
             df_agenda['fecha_inicio'] = pd.to_datetime(df_agenda['fecha_inicio']).dt.date
             df_agenda['fecha_fin'] = pd.to_datetime(df_agenda['fecha_fin']).dt.date
-
             column_config = {
-                "id": None, "user_id": None, "created_at": None,
-                "nombre": "Nombre Evento",
-                "fecha_inicio": st.column_config.DateColumn("Inicio"),
-                "fecha_fin": st.column_config.DateColumn("Fin"),
+                "id": None, "user_id": None, "created_at": None, "nombre": "Evento",
+                "fecha_inicio": st.column_config.DateColumn("Inicio"), "fecha_fin": st.column_config.DateColumn("Fin"),
                 "estatus": st.column_config.SelectboxColumn("Estatus", options=["Confirmado", "Sin Confirmar", "Internacional"]),
                 "comentarios": "Comentarios"
             }
-            
-            edited_df = st.data_editor(df_agenda, column_config=column_config, use_container_width=True, hide_index=True, key="editor_agenda", num_rows="dynamic")
+            edited_df = st.data_editor(df_agenda, column_config=column_config, use_container_width=True, hide_index=True)
 
             if st.button("💾 Guardar Cambios en Agenda", type="primary"):
-                try:
-                    with st.spinner("Sincronizando agenda..."):
-                        ids_originales = [row['id'] for row in eventos_db]
-                        ids_finales = []
-                        for index, row in edited_df.iterrows():
-                            if pd.notna(row.get('id')):
-                                ids_finales.append(row['id'])
-                                supabase.table("agenda").update({
-                                    "nombre": row['nombre'], "fecha_inicio": str(row['fecha_inicio']), 
-                                    "fecha_fin": str(row['fecha_fin']), "estatus": row['estatus'], 
-                                    "comentarios": row['comentarios']
-                                }).eq("id", row['id']).execute()
-                            else:
-                                guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
-                        
-                        for old_id in ids_originales:
-                            if old_id not in ids_finales:
-                                supabase.table("agenda").delete().eq("id", old_id).execute()
-
-                    st.success("Agenda actualizada correctamente.")
-                    time.sleep(1)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error al sincronizar: {e}")
-        else:
-            st.info("No hay eventos registrados para editar.")
+                with st.spinner("Sincronizando agenda..."):
+                    ids_originales = [row['id'] for row in eventos_db]
+                    ids_finales = []
+                    for index, row in edited_df.iterrows():
+                        if pd.notna(row.get('id')):
+                            ids_finales.append(row['id'])
+                            supabase.table("agenda").update({"nombre": row['nombre'], "fecha_inicio": str(row['fecha_inicio']), "fecha_fin": str(row['fecha_fin']), "estatus": row['estatus'], "comentarios": row['comentarios']}).eq("id", row['id']).execute()
+                        else: guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
+                    for old_id in ids_originales:
+                        if old_id not in ids_finales: supabase.table("agenda").delete().eq("id", old_id).execute()
+                st.success("Agenda actualizada.")
+                time.sleep(1)
+                st.rerun()
+        else: st.info("No hay eventos registrados.")
 
     st.divider()
-
     calendar_events = []
     for evt in eventos_db:
         color = "#3788d8"
         if evt['estatus'] == "Confirmado": color = "#28a745"
         elif evt['estatus'] == "Sin Confirmar": color = "#dc3545"
         elif evt['estatus'] == "Internacional": color = "#007bff"
+        calendar_events.append({"title": evt['nombre'], "start": evt['fecha_inicio'], "end": str(pd.to_datetime(evt['fecha_fin']) + timedelta(days=1)).split(" ")[0], "backgroundColor": color, "borderColor": color, "extendedProps": {"description": evt.get('comentarios', '')}})
 
-        calendar_events.append({
-            "title": evt['nombre'],
-            "start": evt['fecha_inicio'],
-            "end": str(pd.to_datetime(evt['fecha_fin']) + timedelta(days=1)).split(" ")[0], 
-            "backgroundColor": color,
-            "borderColor": color,
-            "extendedProps": {"description": evt.get('comentarios', '')}
-        })
+    calendar_options = {"headerToolbar": {"left": "today prev,next", "center": "title", "right": "dayGridMonth,listMonth"}, "buttonText": {"today": "Hoy", "month": "Mes", "list": "Lista"}, "initialView": "dayGridMonth", "locale": "es", "height": 800}
+    if calendar: st_calendar = calendar(events=calendar_events, options=calendar_options)
 
-    calendar_options = {
-        "headerToolbar": {
-            "left": "today prev,next",
-            "center": "title",
-            "right": "dayGridMonth,multiMonthYear,listMonth"
-        },
-        "buttonText": {
-            "today": "Hoy", "month": "Mes", "multiMonthYear": "Año Completo",
-            "list": "Lista", "prev": "Ant", "next": "Sig"
-        },
-        "initialView": "dayGridMonth",
-        "locale": "es",          
-        "height": 800,  
-        "navLinks": True,
-        "selectable": True,
-        "editable": False,
-    }
-
-    if calendar:
-        st_calendar = calendar(events=calendar_events, options=calendar_options, custom_css="""
-            .fc-event-title { font-weight: bold !important; }
-            .fc-daygrid-day:hover { background-color: #f0f2f6; }
-            .fc-col-header-cell { background-color: #f8f9fa; }
-        """)
-        if st_calendar.get("eventClick"):
-            evt_click = st_calendar["eventClick"]["event"]
-            st.info(f"📌 **{evt_click['title']}**\n\n{evt_click['extendedProps']['description']}")
-    else:
-        st.warning("Instala 'streamlit-calendar' para ver el calendario visual.")
-
-
+# ==========================================
+# 7. FUNCIÓN POTENCIADA: BASE DE TORNEOS
+# ==========================================
 def mostrar_historial_editor():
     st.header("📝 Base de Torneos")
-    st.info("Selecciona un torneo para editar. Los cambios se guardan automáticamente en la base de datos.")
+    st.info("Aquí puedes editar todos los datos de tus torneos y ver los promedios finales (Nota de Ronda).")
     user_id = st.session_state.user.id
+    
     try:
+        # Cargar todos los torneos
         torneos_resp = supabase.table("torneos").select("*").eq("user_id", user_id).order("fecha_torneo", desc=True).execute()
         df_torneos = pd.DataFrame(torneos_resp.data)
+        
         if df_torneos.empty:
             st.warning("No tienes torneos registrados.")
             return
         
-        torneo_opciones = {f"{row['nombre_torneo']} ({row['fecha_torneo']})": row['id'] for index, row in df_torneos.iterrows()}
-        seleccion_nombre = st.selectbox("Selecciona Torneo:", list(torneo_opciones.keys()))
-        torneo_id_selec = torneo_opciones[seleccion_nombre]
+        # Opciones para el desplegable (Añadiendo "Ver Todos" al inicio)
+        opciones_lista = ["Ver Todos"] + [f"{row['nombre_torneo']} ({row['fecha_torneo']})" for idx, row in df_torneos.iterrows()]
+        mapa_torneos = {f"{row['nombre_torneo']} ({row['fecha_torneo']})": row['id'] for idx, row in df_torneos.iterrows()}
+        
+        seleccion = st.selectbox("Selecciona un Torneo:", opciones_lista)
         st.divider()
-        
-        registros_resp = supabase.table("registros_poomsae").select("*").eq("torneo_id", torneo_id_selec).execute()
-        df_registros = pd.DataFrame(registros_resp.data)
-        
-        column_config = {
-            "id": None, "user_id": None, "torneo_id": None, "created_at": None,
-            "nombre_poomsae": "Poomsae", "ronda": "Ronda",
-            "mi_nota_tecnica": st.column_config.NumberColumn("Mi Técnica", min_value=0, max_value=4, step=0.01),
-            "mi_nota_presentacion": st.column_config.NumberColumn("Mi Pres.", min_value=0, max_value=6, step=0.01),
-            "mi_nota_final": None, "nombre_rival": "Nombre Rival",
-            "rival_nota_tecnica": st.column_config.NumberColumn("Riv. Técnica", min_value=0, max_value=4, step=0.01),
-            "rival_nota_presentacion": st.column_config.NumberColumn("Riv. Pres.", min_value=0, max_value=6, step=0.01),
-            "rival_nota_final": None, "resultado": None, "comentarios": "Comentarios"
-        }
-        
-        edited_df = st.data_editor(df_registros, column_config=column_config, use_container_width=True, hide_index=True, key="editor_torneos")
-        
-        if st.button("💾 Guardar Cambios", type="primary"):
-            try:
-                with st.spinner("Guardando cambios..."):
-                    for index, row in edited_df.iterrows():
-                        mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
-                        riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
-                        res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
-                        update_data = {
-                            "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
-                            "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
-                            "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
-                            "comentarios": row.get('comentarios', '')
-                        }
-                        supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
-                    st.success("✅ Datos actualizados correctamente.")
+
+        if seleccion == "Ver Todos":
+            # ====== MODO "VER TODOS" ======
+            st.subheader("📋 Todos los Torneos (Editar Metadata)")
+            df_torneos_edit = df_torneos.copy()
+            df_torneos_edit['fecha_torneo'] = pd.to_datetime(df_torneos_edit['fecha_torneo']).dt.date
+            
+            col_config_torneos = {
+                "id": None, "user_id": None, "created_at": None,
+                "nombre_torneo": "Nombre del Torneo",
+                "fecha_torneo": st.column_config.DateColumn("Fecha"),
+                "categoria": st.column_config.SelectboxColumn("Categoría", options=["Elite", "Liga", "G2", "Open"]),
+                "modalidad": st.column_config.SelectboxColumn("Modalidad", options=["Individual", "Pareja", "Equipo"])
+            }
+            
+            edited_torneos = st.data_editor(df_torneos_edit, column_config=col_config_torneos, use_container_width=True, hide_index=True)
+            
+            if st.button("💾 Guardar Cambios de Torneos (Nombres/Fechas)", type="primary"):
+                with st.spinner("Actualizando metadata de torneos..."):
+                    for idx, row in edited_torneos.iterrows():
+                        supabase.table("torneos").update({
+                            "nombre_torneo": row['nombre_torneo'], "fecha_torneo": str(row['fecha_torneo']),
+                            "categoria": row['categoria'], "modalidad": row['modalidad']
+                        }).eq("id", row['id']).execute()
+                    st.success("✅ Torneos actualizados.")
                     time.sleep(1)
                     st.rerun()
-            except Exception as e: st.error(f"Error al actualizar: {e}")
+
+            st.divider()
+            st.subheader("📊 Promedios Finales por Ronda (Todos los Torneos)")
+            
+            # Cargar todos los registros para promedios
+            registros_resp = supabase.table("registros_poomsae").select("*, torneos(nombre_torneo)").eq("user_id", user_id).execute()
+            df_reg_all = pd.DataFrame(registros_resp.data)
+            
+            if not df_reg_all.empty:
+                df_reg_all['Torneo'] = df_reg_all['torneos'].apply(lambda x: x['nombre_torneo'] if x else '-')
+                df_promedios = df_reg_all.copy()
+                
+                # Extraer "Ronda Base" (quita el "(P1)" y "(P2)") para poder promediar la ronda
+                df_promedios['Ronda Base'] = df_promedios['ronda'].apply(lambda x: str(x).split(" (")[0])
+                
+                promedios_all = df_promedios.groupby(['Torneo', 'Ronda Base', 'nombre_rival']).agg({
+                    'mi_nota_final': 'mean',
+                    'rival_nota_final': 'mean'
+                }).reset_index()
+
+                def winner_label(row):
+                    if row['mi_nota_final'] > row['rival_nota_final']: return "✅ Ganador"
+                    elif row['mi_nota_final'] < row['rival_nota_final']: return "❌ Perdedor"
+                    return "➖ Empate"
+                
+                promedios_all['Resultado Final'] = promedios_all.apply(winner_label, axis=1)
+                promedios_all = promedios_all.rename(columns={
+                    'nombre_rival': 'Rival', 'mi_nota_final': 'Mi Nota Final (Ronda)', 'rival_nota_final': 'Nota Final Rival'
+                })
+                
+                st.dataframe(promedios_all.style.format({'Mi Nota Final (Ronda)': "{:.2f}", 'Nota Final Rival': "{:.2f}"}), use_container_width=True, hide_index=True)
+                
+            st.divider()
+            st.subheader("✏️ Editar Todos los Poomsaes Individuales")
+            if not df_reg_all.empty:
+                col_config_reg = {
+                    "id": None, "user_id": None, "torneo_id": None, "created_at": None, "torneos": None, "Torneo": "Torneo",
+                    "nombre_poomsae": "Poomsae", "ronda": "Ronda",
+                    "mi_nota_tecnica": st.column_config.NumberColumn("Mi Técnica", min_value=0.0, max_value=4.0, step=0.01),
+                    "mi_nota_presentacion": st.column_config.NumberColumn("Mi Pres.", min_value=0.0, max_value=6.0, step=0.01),
+                    "mi_nota_final": None, "nombre_rival": "Rival",
+                    "rival_nota_tecnica": st.column_config.NumberColumn("Riv. Técnica", min_value=0.0, max_value=4.0, step=0.01),
+                    "rival_nota_presentacion": st.column_config.NumberColumn("Riv. Pres.", min_value=0.0, max_value=6.0, step=0.01),
+                    "rival_nota_final": None, "resultado": None, "comentarios": "Comentarios"
+                }
+                edited_regs = st.data_editor(df_reg_all, column_config=col_config_reg, use_container_width=True, hide_index=True)
+                
+                if st.button("💾 Guardar Cambios en Poomsaes", type="primary"):
+                    with st.spinner("Guardando poomsaes..."):
+                        for index, row in edited_regs.iterrows():
+                            mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
+                            riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
+                            res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
+                            update_data = {
+                                "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
+                                "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
+                                "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
+                                "comentarios": row.get('comentarios', '')
+                            }
+                            supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
+                        st.success("✅ Poomsaes actualizados.")
+                        time.sleep(1)
+                        st.rerun()
+
+        else:
+            # ====== MODO "TORNEO ESPECÍFICO" ======
+            torneo_id_selec = mapa_torneos[seleccion]
+            torneo_info = df_torneos[df_torneos['id'] == torneo_id_selec].iloc[0]
+
+            st.subheader("⚙️ Editar Datos del Torneo")
+            c1, c2, c3, c4 = st.columns(4)
+            t_nombre = c1.text_input("Nombre Torneo", value=torneo_info['nombre_torneo'])
+            
+            try: t_fecha_val = pd.to_datetime(torneo_info['fecha_torneo']).date()
+            except: t_fecha_val = date.today()
+            t_fecha = c2.date_input("Fecha", value=t_fecha_val)
+            
+            cats = ["Elite", "Liga", "G2", "Open"]
+            t_cat = c3.selectbox("Categoría", cats, index=cats.index(torneo_info['categoria']) if torneo_info['categoria'] in cats else 0)
+            
+            mods = ["Individual", "Pareja", "Equipo"]
+            t_mod = c4.selectbox("Modalidad", mods, index=mods.index(torneo_info['modalidad']) if torneo_info['modalidad'] in mods else 0)
+
+            if st.button("💾 Guardar Datos del Torneo"):
+                supabase.table("torneos").update({
+                    "nombre_torneo": t_nombre, "fecha_torneo": str(t_fecha), "categoria": t_cat, "modalidad": t_mod
+                }).eq("id", torneo_id_selec).execute()
+                st.success("Info del torneo actualizada.")
+                time.sleep(1)
+                st.rerun()
+
+            st.divider()
+            
+            # Cargar los poomsaes de este torneo
+            registros_resp = supabase.table("registros_poomsae").select("*").eq("torneo_id", torneo_id_selec).execute()
+            df_registros = pd.DataFrame(registros_resp.data)
+            
+            if not df_registros.empty:
+                st.subheader("📊 NOTA FINAL (Promedio por Ronda)")
+                df_promedios = df_registros.copy()
+                # Extraemos la "Ronda Base" para promediar el P1 y P2 de la misma ronda
+                df_promedios['Ronda Base'] = df_promedios['ronda'].apply(lambda x: str(x).split(" (")[0])
+                
+                prom_group = df_promedios.groupby(['Ronda Base', 'nombre_rival']).agg({
+                    'mi_nota_final': 'mean',
+                    'rival_nota_final': 'mean'
+                }).reset_index()
+
+                def win_label(row):
+                    if row['mi_nota_final'] > row['rival_nota_final']: return "✅ Ganador"
+                    elif row['mi_nota_final'] < row['rival_nota_final']: return "❌ Perdedor"
+                    return "➖ Empate"
+                
+                prom_group['Resultado Final de Ronda'] = prom_group.apply(win_label, axis=1)
+                prom_group = prom_group.rename(columns={
+                    'nombre_rival': 'Rival', 'mi_nota_final': 'Mi Nota Final (Ronda)', 'rival_nota_final': 'Nota Final Rival'
+                })
+                
+                st.dataframe(prom_group.style.format({'Mi Nota Final (Ronda)': "{:.2f}", 'Nota Final Rival': "{:.2f}"}), use_container_width=True, hide_index=True)
+                st.divider()
+
+            st.subheader("✏️ Editar Registros de Poomsaes")
+            if not df_registros.empty:
+                col_config = {
+                    "id": None, "user_id": None, "torneo_id": None, "created_at": None,
+                    "nombre_poomsae": "Poomsae", "ronda": "Ronda",
+                    "mi_nota_tecnica": st.column_config.NumberColumn("Mi Técnica", min_value=0.0, max_value=4.0, step=0.01),
+                    "mi_nota_presentacion": st.column_config.NumberColumn("Mi Pres.", min_value=0.0, max_value=6.0, step=0.01),
+                    "mi_nota_final": None, "nombre_rival": "Nombre Rival",
+                    "rival_nota_tecnica": st.column_config.NumberColumn("Riv. Técnica", min_value=0.0, max_value=4.0, step=0.01),
+                    "rival_nota_presentacion": st.column_config.NumberColumn("Riv. Pres.", min_value=0.0, max_value=6.0, step=0.01),
+                    "rival_nota_final": None, "resultado": None, "comentarios": "Comentarios"
+                }
+                
+                edited_df = st.data_editor(df_registros, column_config=col_config, use_container_width=True, hide_index=True)
+                
+                if st.button("💾 Guardar Notas", type="primary"):
+                    with st.spinner("Guardando cambios..."):
+                        for index, row in edited_df.iterrows():
+                            mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
+                            riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
+                            res = "Ganador" if mi_total > riv_total else ("Perdedor" if mi_total < riv_total else "Empate")
+                            update_data = {
+                                "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
+                                "mi_nota_tecnica": row['mi_nota_tecnica'], "mi_nota_presentacion": row['mi_nota_presentacion'], "mi_nota_final": mi_total,
+                                "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
+                                "comentarios": row.get('comentarios', '')
+                            }
+                            supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
+                        st.success("✅ Datos actualizados correctamente.")
+                        time.sleep(1)
+                        st.rerun()
+
     except Exception as e: st.error(f"Error cargando historial: {e}")
 
 def mostrar_dashboard():
