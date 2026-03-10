@@ -23,6 +23,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# --- FUNCIÓN AUXILIAR: LOGO A BASE64 ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as image_file:
@@ -33,7 +34,7 @@ def get_image_base64(path):
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
-# --- 2. CONEXIÓN BASE DE DATOS ---
+# --- 2. CONEXIÓN BASE DE DATOS (MÉTODO LIGERO) ---
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 
@@ -410,7 +411,7 @@ def mostrar_calendario():
 # ==========================================
 def mostrar_historial_editor():
     st.header("📝 Base de Torneos")
-    st.info("Aquí puedes editar todos los datos de tus torneos y ver los promedios finales (Nota de Ronda).")
+    st.info("Aquí puedes editar todos los datos de tus torneos, ver los promedios finales y eliminar los que no necesites.")
     user_id = st.session_state.user.id
     
     try:
@@ -538,13 +539,30 @@ def mostrar_historial_editor():
             mods = ["Individual", "Pareja", "Equipo"]
             t_mod = c4.selectbox("Modalidad", mods, index=mods.index(torneo_info['modalidad']) if torneo_info['modalidad'] in mods else 0)
 
-            if st.button("💾 Guardar Datos del Torneo"):
-                supabase.table("torneos").update({
-                    "nombre_torneo": t_nombre, "fecha_torneo": str(t_fecha), "categoria": t_cat, "modalidad": t_mod
-                }).eq("id", torneo_id_selec).execute()
-                st.success("Info del torneo actualizada.")
-                time.sleep(1)
-                st.rerun()
+            # --- BOTONES DE GUARDAR O ELIMINAR ---
+            col_btn_guardar, col_btn_borrar = st.columns(2)
+            with col_btn_guardar:
+                if st.button("💾 Guardar Datos del Torneo", use_container_width=True):
+                    supabase.table("torneos").update({
+                        "nombre_torneo": t_nombre, "fecha_torneo": str(t_fecha), "categoria": t_cat, "modalidad": t_mod
+                    }).eq("id", torneo_id_selec).execute()
+                    st.success("Info del torneo actualizada.")
+                    time.sleep(1)
+                    st.rerun()
+
+            with col_btn_borrar:
+                # Checkbox de seguridad para evitar borrar el torneo sin querer
+                eliminar_check = st.checkbox("Habilitar botón de borrado")
+                if eliminar_check:
+                    if st.button("🗑️ Eliminar Torneo Definitivamente", type="primary", use_container_width=True):
+                        with st.spinner("Eliminando torneo y sus registros..."):
+                            # Borramos los poomsaes primero
+                            supabase.table("registros_poomsae").delete().eq("torneo_id", torneo_id_selec).execute()
+                            # Borramos el torneo
+                            supabase.table("torneos").delete().eq("id", torneo_id_selec).execute()
+                        st.success("Torneo eliminado correctamente.")
+                        time.sleep(1)
+                        st.rerun()
 
             st.divider()
             
