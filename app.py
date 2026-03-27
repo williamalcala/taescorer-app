@@ -199,11 +199,19 @@ def guardar_torneo(datos_torneo, lista_poomsaes):
             return True
     except: return False
 
-def guardar_evento_agenda(nombre, inicio, fin, estatus, comentarios):
+def guardar_evento_agenda(nombre, inicio, fin, estatus, comentarios, asistencia="⏳ Pendiente"):
     user_id = st.session_state.user.id
     try:
         with st.spinner("Agendando..."):
-            data = {"user_id": user_id, "nombre": nombre, "fecha_inicio": str(inicio), "fecha_fin": str(fin), "estatus": estatus, "comentarios": comentarios}
+            data = {
+                "user_id": user_id, 
+                "nombre": nombre, 
+                "fecha_inicio": str(inicio), 
+                "fecha_fin": str(fin), 
+                "estatus": estatus, 
+                "comentarios": comentarios,
+                "asistencia": asistencia
+            }
             supabase.table("agenda").insert(data).execute()
             return True
     except Exception as e:
@@ -405,6 +413,7 @@ def mostrar_calendario():
         
         if st.form_submit_button("📅 Agendar Evento"):
             if evt_nombre:
+                # Al agendar desde aquí, la asistencia por defecto será "⏳ Pendiente"
                 if guardar_evento_agenda(evt_nombre, evt_inicio, evt_fin, evt_estatus, evt_coment):
                     st.success("Evento agregado exitosamente.")
                     time.sleep(1)
@@ -428,8 +437,14 @@ def mostrar_calendario():
         elif evt['estatus'] == "Sin Confirmar": color = "#dc3545"
         elif evt['estatus'] == "Internacional": color = "#007bff"
         
+        # Añadimos un pequeño indicador visual al título del calendario si ya se definió asistencia
+        prefijo = ""
+        asist = evt.get('asistencia', "⏳ Pendiente")
+        if asist == "✅ Asistí": prefijo = "✅ "
+        elif asist == "❌ No Asistí": prefijo = "❌ "
+
         calendar_events.append({
-            "title": evt['nombre'], 
+            "title": f"{prefijo}{evt['nombre']}", 
             "start": evt['fecha_inicio'], 
             "end": str(pd.to_datetime(evt['fecha_fin']) + timedelta(days=1)).split(" ")[0], 
             "backgroundColor": color, 
@@ -437,7 +452,7 @@ def mostrar_calendario():
             "extendedProps": {"description": evt.get('comentarios', '')}
         })
 
-    # Opciones actualizadas para mostrar "multiMonthYear"
+    # Opciones para mostrar "multiMonthYear"
     calendar_options = {
         "headerToolbar": {
             "left": "today prev,next", 
@@ -449,7 +464,7 @@ def mostrar_calendario():
             "year": "Año", 
             "month": "Mes"
         }, 
-        "initialView": "multiMonthYear", # Esto habilita la vista de todo el año
+        "initialView": "multiMonthYear", 
         "locale": "es", 
         "height": 850
     }
@@ -468,6 +483,12 @@ def mostrar_calendario():
         df_agenda['fecha_inicio'] = pd.to_datetime(df_agenda['fecha_inicio']).dt.date
         df_agenda['fecha_fin'] = pd.to_datetime(df_agenda['fecha_fin']).dt.date
         
+        # Asegurar que la columna 'asistencia' exista en el DataFrame (por los registros viejos)
+        if 'asistencia' not in df_agenda.columns:
+            df_agenda['asistencia'] = "⏳ Pendiente"
+        else:
+            df_agenda['asistencia'] = df_agenda['asistencia'].fillna("⏳ Pendiente")
+        
         # Ordenar por fecha cronológicamente
         df_agenda = df_agenda.sort_values(by="fecha_inicio", ascending=True).reset_index(drop=True)
         
@@ -476,6 +497,7 @@ def mostrar_calendario():
             "fecha_inicio": st.column_config.DateColumn("Fecha Inicio"), 
             "fecha_fin": st.column_config.DateColumn("Fecha Fin"),
             "estatus": st.column_config.SelectboxColumn("Estatus", options=["Confirmado", "Sin Confirmar", "Internacional"]),
+            "asistencia": st.column_config.SelectboxColumn("Asistencia", options=["⏳ Pendiente", "✅ Asistí", "❌ No Asistí"]),
             "comentarios": "Comentarios Adicionales"
         }
         
@@ -493,12 +515,15 @@ def mostrar_calendario():
                             "fecha_inicio": str(row['fecha_inicio']), 
                             "fecha_fin": str(row['fecha_fin']), 
                             "estatus": row['estatus'], 
+                            "asistencia": row['asistencia'],
                             "comentarios": row['comentarios']
                         }).eq("id", row['id']).execute()
                     else: 
-                        guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
+                        guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'], row['asistencia'])
+                
                 for old_id in ids_originales:
                     if old_id not in ids_finales: supabase.table("agenda").delete().eq("id", old_id).execute()
+            
             st.success("Lista de eventos actualizada correctamente.")
             time.sleep(1)
             st.rerun()
