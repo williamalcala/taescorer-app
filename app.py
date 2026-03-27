@@ -390,70 +390,120 @@ def mostrar_formulario_registro():
 
 def mostrar_calendario():
     st.title("📅 Calendario de Torneos")
-    st.subheader("🛠️ Gestión de Agenda")
-    tab_add, tab_edit = st.tabs(["➕ Agregar Evento", "✏️ Editar / Eliminar Eventos"])
-
-    with tab_add:
-        with st.form("form_agenda"):
-            c1, c2, c3 = st.columns(3)
-            evt_nombre = c1.text_input("Nombre del Torneo")
-            evt_estatus = c2.selectbox("Estatus", ["Confirmado", "Sin Confirmar", "Internacional"])
-            evt_coment = c3.text_input("Comentario Corto")
-            c4, c5 = st.columns(2)
-            evt_inicio = c4.date_input("Fecha Inicio", date.today())
-            evt_fin = c5.date_input("Fecha Fin", date.today())
-            
-            if st.form_submit_button("📅 Agendar Evento"):
-                if evt_nombre:
-                    if guardar_evento_agenda(evt_nombre, evt_inicio, evt_fin, evt_estatus, evt_coment):
-                        st.success("Evento agregado")
-                        time.sleep(1)
-                        st.rerun()
-                else: st.warning("Falta el nombre")
-
-    with tab_edit:
-        try: eventos_db = supabase.table("agenda").select("*").eq("user_id", st.session_state.user.id).execute().data
-        except: eventos_db = []
-
-        if eventos_db:
-            df_agenda = pd.DataFrame(eventos_db)
-            df_agenda['fecha_inicio'] = pd.to_datetime(df_agenda['fecha_inicio']).dt.date
-            df_agenda['fecha_fin'] = pd.to_datetime(df_agenda['fecha_fin']).dt.date
-            column_config = {
-                "id": None, "user_id": None, "created_at": None, "nombre": "Evento",
-                "fecha_inicio": st.column_config.DateColumn("Inicio"), "fecha_fin": st.column_config.DateColumn("Fin"),
-                "estatus": st.column_config.SelectboxColumn("Estatus", options=["Confirmado", "Sin Confirmar", "Internacional"]),
-                "comentarios": "Comentarios"
-            }
-            edited_df = st.data_editor(df_agenda, column_config=column_config, use_container_width=True, hide_index=True)
-
-            if st.button("💾 Guardar Cambios en Agenda", type="primary"):
-                with st.spinner("Sincronizando agenda..."):
-                    ids_originales = [row['id'] for row in eventos_db]
-                    ids_finales = []
-                    for index, row in edited_df.iterrows():
-                        if pd.notna(row.get('id')):
-                            ids_finales.append(row['id'])
-                            supabase.table("agenda").update({"nombre": row['nombre'], "fecha_inicio": str(row['fecha_inicio']), "fecha_fin": str(row['fecha_fin']), "estatus": row['estatus'], "comentarios": row['comentarios']}).eq("id", row['id']).execute()
-                        else: guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
-                    for old_id in ids_originales:
-                        if old_id not in ids_finales: supabase.table("agenda").delete().eq("id", old_id).execute()
-                st.success("Agenda actualizada.")
-                time.sleep(1)
-                st.rerun()
-        else: st.info("No hay eventos registrados.")
+    st.info("Visualiza todo tu año competitivo, agrega nuevas fechas y gestiona tus eventos desde la lista.")
+    
+    # --- 1. AGREGAR EVENTO ---
+    st.subheader("➕ Agregar Nuevo Evento")
+    with st.form("form_agenda"):
+        c1, c2, c3 = st.columns(3)
+        evt_nombre = c1.text_input("Nombre del Torneo")
+        evt_estatus = c2.selectbox("Estatus", ["Confirmado", "Sin Confirmar", "Internacional"])
+        evt_coment = c3.text_input("Comentario Corto")
+        c4, c5 = st.columns(2)
+        evt_inicio = c4.date_input("Fecha Inicio", date.today())
+        evt_fin = c5.date_input("Fecha Fin", date.today())
+        
+        if st.form_submit_button("📅 Agendar Evento"):
+            if evt_nombre:
+                if guardar_evento_agenda(evt_nombre, evt_inicio, evt_fin, evt_estatus, evt_coment):
+                    st.success("Evento agregado exitosamente.")
+                    time.sleep(1)
+                    st.rerun()
+            else: st.warning("Por favor, ingresa el nombre del evento.")
 
     st.divider()
+
+    # Obtener eventos de la base de datos
+    try: 
+        eventos_db = supabase.table("agenda").select("*").eq("user_id", st.session_state.user.id).execute().data
+    except: 
+        eventos_db = []
+
+    # --- 2. VISTA DE CALENDARIO (TODO EL AÑO) ---
+    st.subheader("👁️ Vista Anual de Eventos")
     calendar_events = []
     for evt in eventos_db:
         color = "#3788d8"
         if evt['estatus'] == "Confirmado": color = "#28a745"
         elif evt['estatus'] == "Sin Confirmar": color = "#dc3545"
         elif evt['estatus'] == "Internacional": color = "#007bff"
-        calendar_events.append({"title": evt['nombre'], "start": evt['fecha_inicio'], "end": str(pd.to_datetime(evt['fecha_fin']) + timedelta(days=1)).split(" ")[0], "backgroundColor": color, "borderColor": color, "extendedProps": {"description": evt.get('comentarios', '')}})
+        
+        calendar_events.append({
+            "title": evt['nombre'], 
+            "start": evt['fecha_inicio'], 
+            "end": str(pd.to_datetime(evt['fecha_fin']) + timedelta(days=1)).split(" ")[0], 
+            "backgroundColor": color, 
+            "borderColor": color, 
+            "extendedProps": {"description": evt.get('comentarios', '')}
+        })
 
-    calendar_options = {"headerToolbar": {"left": "today prev,next", "center": "title", "right": "dayGridMonth,listMonth"}, "buttonText": {"today": "Hoy", "month": "Mes", "list": "Lista"}, "initialView": "dayGridMonth", "locale": "es", "height": 800}
-    if calendar: st_calendar = calendar(events=calendar_events, options=calendar_options)
+    # Opciones actualizadas para mostrar "multiMonthYear"
+    calendar_options = {
+        "headerToolbar": {
+            "left": "today prev,next", 
+            "center": "title", 
+            "right": "multiMonthYear,dayGridMonth"
+        }, 
+        "buttonText": {
+            "today": "Hoy", 
+            "year": "Año", 
+            "month": "Mes"
+        }, 
+        "initialView": "multiMonthYear", # Esto habilita la vista de todo el año
+        "locale": "es", 
+        "height": 850
+    }
+    
+    if calendar: 
+        st_calendar = calendar(events=calendar_events, options=calendar_options)
+
+    st.divider()
+
+    # --- 3. LISTADO DE EVENTOS (ORDENADO Y EDITABLE) ---
+    st.subheader("📋 Listado y Edición de Eventos")
+    st.markdown("Aquí puedes ver todos tus eventos ordenados por fecha. **Puedes editar cualquier dato directamente en la tabla**.")
+    
+    if eventos_db:
+        df_agenda = pd.DataFrame(eventos_db)
+        df_agenda['fecha_inicio'] = pd.to_datetime(df_agenda['fecha_inicio']).dt.date
+        df_agenda['fecha_fin'] = pd.to_datetime(df_agenda['fecha_fin']).dt.date
+        
+        # Ordenar por fecha cronológicamente
+        df_agenda = df_agenda.sort_values(by="fecha_inicio", ascending=True).reset_index(drop=True)
+        
+        column_config = {
+            "id": None, "user_id": None, "created_at": None, "nombre": "Nombre del Evento",
+            "fecha_inicio": st.column_config.DateColumn("Fecha Inicio"), 
+            "fecha_fin": st.column_config.DateColumn("Fecha Fin"),
+            "estatus": st.column_config.SelectboxColumn("Estatus", options=["Confirmado", "Sin Confirmar", "Internacional"]),
+            "comentarios": "Comentarios Adicionales"
+        }
+        
+        edited_df = st.data_editor(df_agenda, column_config=column_config, use_container_width=True, hide_index=True)
+
+        if st.button("💾 Guardar Cambios en la Lista", type="primary"):
+            with st.spinner("Sincronizando agenda..."):
+                ids_originales = [row['id'] for row in eventos_db]
+                ids_finales = []
+                for index, row in edited_df.iterrows():
+                    if pd.notna(row.get('id')):
+                        ids_finales.append(row['id'])
+                        supabase.table("agenda").update({
+                            "nombre": row['nombre'], 
+                            "fecha_inicio": str(row['fecha_inicio']), 
+                            "fecha_fin": str(row['fecha_fin']), 
+                            "estatus": row['estatus'], 
+                            "comentarios": row['comentarios']
+                        }).eq("id", row['id']).execute()
+                    else: 
+                        guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'])
+                for old_id in ids_originales:
+                    if old_id not in ids_finales: supabase.table("agenda").delete().eq("id", old_id).execute()
+            st.success("Lista de eventos actualizada correctamente.")
+            time.sleep(1)
+            st.rerun()
+    else: 
+        st.info("Aún no tienes eventos registrados en tu agenda.")
 
 
 def mostrar_historial_editor():
@@ -784,31 +834,31 @@ def mostrar_dashboard():
                 c_k1.metric("Promedio Técnica", f"{avg_tec:.2f}", f"{delta_tech:+.2f} vs ant.")
                 c_k2.metric("Promedio Presentación", f"{avg_pres:.2f}", f"{delta_pres:+.2f} vs ant.")
 
-            vars_to_melt = []
-            if ver_tecnica:
-                vars_to_melt.append('mi_nota_tecnica')
-                if rival_det != "Ninguno": vars_to_melt.append('rival_nota_tecnica')
-            if ver_pres:
-                vars_to_melt.append('mi_nota_presentacion')
-                if rival_det != "Ninguno": vars_to_melt.append('rival_nota_presentacion')
+                vars_to_melt = []
+                if ver_tecnica:
+                    vars_to_melt.append('mi_nota_tecnica')
+                    if rival_det != "Ninguno": vars_to_melt.append('rival_nota_tecnica')
+                if ver_pres:
+                    vars_to_melt.append('mi_nota_presentacion')
+                    if rival_det != "Ninguno": vars_to_melt.append('rival_nota_presentacion')
 
-            if vars_to_melt:
-                df_detalle_graf = df_det[['Fecha del Torneo', 'nombre_torneo', 'Poomsae', 'mi_nota_tecnica', 'mi_nota_presentacion', 'rival_nota_tecnica', 'rival_nota_presentacion', 'nombre_rival']]
-                if rival_det != "Ninguno":
-                    df_detalle_graf = df_detalle_graf[df_detalle_graf['nombre_rival'] == rival_det]
+                if vars_to_melt:
+                    df_detalle_graf = df_det[['Fecha del Torneo', 'nombre_torneo', 'Poomsae', 'mi_nota_tecnica', 'mi_nota_presentacion', 'rival_nota_tecnica', 'rival_nota_presentacion', 'nombre_rival']]
+                    if rival_det != "Ninguno":
+                        df_detalle_graf = df_detalle_graf[df_detalle_graf['nombre_rival'] == rival_det]
+                    else:
+                        st.caption("Mostrando solo tu evolución.")
+
+                    df_melted = df_detalle_graf.melt(id_vars=['Fecha del Torneo', 'Poomsae'], value_vars=vars_to_melt, var_name='Tipo Nota', value_name='Puntaje')
+                    mapa_nombres = {'mi_nota_tecnica': 'Mi Técnica', 'mi_nota_presentacion': 'Mi Presentación', 'rival_nota_tecnica': 'Rival Técnica', 'rival_nota_presentacion': 'Rival Presentación'}
+                    df_melted['Tipo Nota'] = df_melted['Tipo Nota'].map(mapa_nombres)
+                    
+                    fig_det = px.line(df_melted, x="Fecha del Torneo", y="Puntaje", color="Tipo Nota", symbol="Tipo Nota", markers=True, text="Puntaje", hover_data=["Poomsae"],
+                                      color_discrete_map={'Mi Técnica': 'blue', 'Mi Presentación': 'cyan', 'Rival Técnica': 'red', 'Rival Presentación': 'orange'})
+                    fig_det.update_traces(textposition="top center", texttemplate='%{text:.2f}')
+                    st.plotly_chart(fig_det, use_container_width=True)
                 else:
-                    st.caption("Mostrando solo tu evolución.")
-
-                df_melted = df_detalle_graf.melt(id_vars=['Fecha del Torneo', 'Poomsae'], value_vars=vars_to_melt, var_name='Tipo Nota', value_name='Puntaje')
-                mapa_nombres = {'mi_nota_tecnica': 'Mi Técnica', 'mi_nota_presentacion': 'Mi Presentación', 'rival_nota_tecnica': 'Rival Técnica', 'rival_nota_presentacion': 'Rival Presentación'}
-                df_melted['Tipo Nota'] = df_melted['Tipo Nota'].map(mapa_nombres)
-                
-                fig_det = px.line(df_melted, x="Fecha del Torneo", y="Puntaje", color="Tipo Nota", symbol="Tipo Nota", markers=True, text="Puntaje", hover_data=["Poomsae"],
-                                  color_discrete_map={'Mi Técnica': 'blue', 'Mi Presentación': 'cyan', 'Rival Técnica': 'red', 'Rival Presentación': 'orange'})
-                fig_det.update_traces(textposition="top center", texttemplate='%{text:.2f}')
-                st.plotly_chart(fig_det, use_container_width=True)
-            else:
-                st.warning("Selecciona al menos una variable (Técnica o Presentación) para ver la gráfica.")
+                    st.warning("Selecciona al menos una variable (Técnica o Presentación) para ver la gráfica.")
 
             st.divider()
             st.markdown("---")
