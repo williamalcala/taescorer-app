@@ -8,6 +8,16 @@ from io import BytesIO
 from PIL import Image
 from streamlit_cropper import st_cropper
 import base64
+import logging
+
+# --- LOGGING: registra errores en taescorer.log ---
+logging.basicConfig(
+    filename="taescorer.log",
+    level=logging.WARNING,
+    format="%(asctime)s | %(levelname)s | %(funcName)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger("taescorer")
 
 # --- IMPORTANTE: LIBRERÍA CALENDARIO ---
 try:
@@ -29,7 +39,8 @@ def get_image_base64(path):
         with open(path, "rb") as image_file:
             encoded = base64.b64encode(image_file.read()).decode()
         return f"data:image/png;base64,{encoded}"
-    except:
+    except Exception as e:
+        logger.warning(f"No se pudo cargar imagen '{path}': {e}")
         return "" 
 
 logo_b64 = get_image_base64("logo-taescorer.png")
@@ -45,8 +56,8 @@ def get_supabase():
     if 'access_token' in st.session_state and 'refresh_token' in st.session_state:
         try:
             client.auth.set_session(st.session_state.access_token, st.session_state.refresh_token)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"No se pudo restaurar sesion Supabase: {e}")
     return client
 
 # Cliente para operaciones SIN sesión (login y signup)
@@ -129,6 +140,7 @@ def login(email, password):
             time.sleep(0.5)
             st.rerun()
     except Exception as e: 
+        logger.error(f"Login fallido para {email}: {e}")
         st.error(f"Error: {e}")
 
 def sign_up(email, password, full_name):
@@ -143,11 +155,13 @@ def sign_up(email, password, full_name):
             time.sleep(1)
             st.rerun()
     except Exception as e: 
+        logger.error(f"Sign-up fallido para {email}: {e}")
         st.error(f"Error: {e}")
 
 def logout():
     try: supabase.auth.sign_out()
-    except: pass
+    except Exception as e:
+        logger.warning(f"Error al cerrar sesion en Supabase: {e}")
     for key in list(st.session_state.keys()): del st.session_state[key]
     st.query_params.clear()
     st.rerun()
@@ -158,7 +172,8 @@ def cargar_perfil():
             data = get_supabase().table("perfiles").select("*").eq("id", st.session_state.user.id).execute()
             if data.data: st.session_state.perfil = data.data[0]
             else: st.session_state.perfil = {}
-        except: pass
+        except Exception as e:
+            logger.error(f"Error cargando perfil para user {st.session_state.user.id}: {e}")
 
 def actualizar_perfil(datos, archivo_foto_bytes):
     user_id = st.session_state.user.id
@@ -171,6 +186,7 @@ def actualizar_perfil(datos, archivo_foto_bytes):
             sb.storage.from_("avatars").upload(file_path, archivo_foto_bytes, {"content-type": "image/jpeg", "upsert": "true"})
             foto_url = sb.storage.from_("avatars").get_public_url(file_path) + f"?t={int(time.time())}"
         except Exception as e:
+            logger.error(f"Error subiendo avatar para user {user_id}: {e}")
             st.error(f"Error al subir la foto: {e}")
             
     try:
@@ -183,6 +199,7 @@ def actualizar_perfil(datos, archivo_foto_bytes):
             time.sleep(1)
             st.rerun()
     except Exception as e: 
+        logger.error(f"Error guardando perfil para user {user_id}: {e}")
         st.error(f"Error técnico al guardar en base de datos: {e}")
 
 def get_lista_rivales():
@@ -191,7 +208,9 @@ def get_lista_rivales():
         resp = get_supabase().table("registros_poomsae").select("nombre_rival").eq("user_id", user_id).execute()
         df = pd.DataFrame(resp.data)
         return sorted(df['nombre_rival'].dropna().unique().tolist()) if not df.empty else []
-    except: return []
+    except Exception as e:
+        logger.warning(f"Error obteniendo lista de rivales: {e}")
+        return []
 
 def guardar_torneo(datos_torneo, lista_poomsaes):
     user_id = st.session_state.user.id
@@ -206,7 +225,9 @@ def guardar_torneo(datos_torneo, lista_poomsaes):
                 poomsaes_a_insertar.append({"user_id": user_id, "torneo_id": torneo_id, "ronda": p["ronda"], "nombre_poomsae": p["nombre"], "mi_nota_tecnica": p["mi_tec"], "mi_nota_presentacion": p["mi_pres"], "mi_nota_final": p["mi_total"], "nombre_rival": p["rival_nombre"], "rival_nota_tecnica": p["rival_tec"], "rival_nota_presentacion": p["rival_pres"], "rival_nota_final": p["rival_total"], "resultado": p["resultado"], "comentarios": p["comentarios"]})
             sb.table("registros_poomsae").insert(poomsaes_a_insertar).execute()
             return True
-    except: return False
+    except Exception as e:
+        logger.error(f"Error guardando torneo '{datos_torneo.get('nombre')}' para user {user_id}: {e}")
+        return False
 
 def guardar_evento_agenda(nombre, inicio, fin, estatus, comentarios, asistencia="⏳ Pendiente"):
     user_id = st.session_state.user.id
@@ -224,6 +245,7 @@ def guardar_evento_agenda(nombre, inicio, fin, estatus, comentarios, asistencia=
             get_supabase().table("agenda").insert(data).execute()
             return True
     except Exception as e:
+        logger.error(f"Error guardando evento agenda '{nombre}': {e}")
         st.error(f"Error guardando agenda: {e}")
         return False
 
@@ -434,7 +456,8 @@ def mostrar_calendario():
     # Obtener eventos de la base de datos
     try: 
         eventos_db = get_supabase().table("agenda").select("*").eq("user_id", st.session_state.user.id).execute().data
-    except: 
+    except Exception as e: 
+        logger.error(f"Error cargando agenda para user {st.session_state.user.id}: {e}")
         eventos_db = []
 
     # --- 2. VISTA DE CALENDARIO (TODO EL AÑO) ---
@@ -756,7 +779,9 @@ def mostrar_historial_editor():
                         time.sleep(1)
                         st.rerun()
 
-    except Exception as e: st.error(f"Error cargando historial: {e}")
+    except Exception as e:
+        logger.error(f"Error cargando historial: {e}")
+        st.error(f"Error cargando historial: {e}")
 
 
 def mostrar_dashboard():
@@ -920,6 +945,7 @@ def mostrar_dashboard():
         else:
             st.info("Aún no tienes torneos registrados.")
     except Exception as e:
+        logger.error(f"Error cargando metricas dashboard: {e}")
         st.error(f"Error cargando métricas: {e}")
 
 # --- 8. FUNCIÓN PANEL ADMINISTRADOR ---
@@ -938,6 +964,7 @@ def mostrar_admin_users():
             else:
                 st.warning("No hay usuarios registrados en la tabla perfiles.")
     except Exception as e:
+        logger.error(f"Error cargando admin users: {e}")
         st.error(f"Error al cargar usuarios: {e}")
 
 # --- 9. MAIN LOOP ---
@@ -971,7 +998,8 @@ def main():
         
         with st.sidebar:
             try: st.image("logo-taescorer.png")
-            except: pass
+            except Exception as e:
+                logger.warning(f"No se pudo cargar logo en sidebar: {e}")
             st.markdown(f"""
                 <style>
                     .avatar-img {{ width: 100px; height: 100px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; border: 2px solid #3498db; }}
