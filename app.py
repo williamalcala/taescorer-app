@@ -32,7 +32,7 @@ def get_image_base64(path):
     except:
         return "" 
 
-logo_b64 = get_image_base64("logo-taescorer.png")
+logo_b64 = get_image_base64("logotaescorer.png")
 
 # --- 2. CONEXIÓN BASE DE DATOS (CLIENTE POR SESIÓN) ---
 SUPABASE_URL = st.secrets["supabase"]["url"]
@@ -970,7 +970,7 @@ def main():
         nom = p.get('nombre_completo', "Atleta")
         
         with st.sidebar:
-            try: st.image("logo-taescorer.png")
+            try: st.image("logotaescorer.png")
             except: pass
             st.markdown(f"""
                 <style>
