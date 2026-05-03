@@ -996,7 +996,7 @@ def main():
             if st.button("Salir", use_container_width=True): logout()
 
             # --- ZONA DE ADMINISTRADOR ---
-            if st.session_state.user.email == "williamgazzu@gmail.com": 
+            if st.session_state.perfil and st.session_state.perfil.get('rol') == 'admin': 
                 st.divider()
                 st.caption("🔒 Admin Zone")
                 if st.button("Ver Usuarios", use_container_width=True):
