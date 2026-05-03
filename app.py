@@ -34,16 +34,23 @@ def get_image_base64(path):
 
 logo_b64 = get_image_base64("logo-taescorer.png")
 
-# --- 2. CONEXIÓN BASE DE DATOS (MÉTODO LIGERO) ---
-url = st.secrets["supabase"]["url"]
-key = st.secrets["supabase"]["key"]
+# --- 2. CONEXIÓN BASE DE DATOS (CLIENTE POR SESIÓN) ---
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
 
-supabase = create_client(url, key)
-if 'access_token' in st.session_state and 'refresh_token' in st.session_state:
-    try:
-        supabase.auth.set_session(st.session_state.access_token, st.session_state.refresh_token)
-    except Exception:
-        pass
+def get_supabase():
+    """Crea un cliente Supabase fresco por cada llamada, autenticado con el token del usuario actual.
+    Esto evita que múltiples usuarios compartan el mismo cliente y vean datos cruzados."""
+    client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    if 'access_token' in st.session_state and 'refresh_token' in st.session_state:
+        try:
+            client.auth.set_session(st.session_state.access_token, st.session_state.refresh_token)
+        except Exception:
+            pass
+    return client
+
+# Cliente para operaciones SIN sesión (login y signup)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- 3. LISTAS OFICIALES ---
 CATEGORIAS_POOMSAE = [
@@ -148,7 +155,7 @@ def logout():
 def cargar_perfil():
     if st.session_state.user:
         try:
-            data = supabase.table("perfiles").select("*").eq("id", st.session_state.user.id).execute()
+            data = get_supabase().table("perfiles").select("*").eq("id", st.session_state.user.id).execute()
             if data.data: st.session_state.perfil = data.data[0]
             else: st.session_state.perfil = {}
         except: pass
@@ -160,8 +167,9 @@ def actualizar_perfil(datos, archivo_foto_bytes):
     if archivo_foto_bytes:
         try:
             file_path = f"{user_id}/avatar.jpg"
-            supabase.storage.from_("avatars").upload(file_path, archivo_foto_bytes, {"content-type": "image/jpeg", "upsert": "true"})
-            foto_url = supabase.storage.from_("avatars").get_public_url(file_path) + f"?t={int(time.time())}"
+            sb = get_supabase()
+            sb.storage.from_("avatars").upload(file_path, archivo_foto_bytes, {"content-type": "image/jpeg", "upsert": "true"})
+            foto_url = sb.storage.from_("avatars").get_public_url(file_path) + f"?t={int(time.time())}"
         except Exception as e:
             st.error(f"Error al subir la foto: {e}")
             
@@ -169,7 +177,7 @@ def actualizar_perfil(datos, archivo_foto_bytes):
         with st.spinner("Guardando perfil..."):
             datos_actualizados = {"id": user_id, **datos}
             if foto_url: datos_actualizados["foto_url"] = foto_url
-            supabase.table("perfiles").upsert(datos_actualizados).execute()
+            get_supabase().table("perfiles").upsert(datos_actualizados).execute()
             st.success("✅ Perfil guardado correctamente.")
             cargar_perfil()
             time.sleep(1)
@@ -180,7 +188,7 @@ def actualizar_perfil(datos, archivo_foto_bytes):
 def get_lista_rivales():
     try:
         user_id = st.session_state.user.id
-        resp = supabase.table("registros_poomsae").select("nombre_rival").eq("user_id", user_id).execute()
+        resp = get_supabase().table("registros_poomsae").select("nombre_rival").eq("user_id", user_id).execute()
         df = pd.DataFrame(resp.data)
         return sorted(df['nombre_rival'].dropna().unique().tolist()) if not df.empty else []
     except: return []
@@ -189,13 +197,14 @@ def guardar_torneo(datos_torneo, lista_poomsaes):
     user_id = st.session_state.user.id
     try:
         with st.spinner("Guardando torneo..."):
+            sb = get_supabase()
             data_torneo = {"user_id": user_id, "nombre_torneo": datos_torneo["nombre"], "fecha_torneo": str(datos_torneo["fecha"]), "categoria": datos_torneo["categoria"], "modalidad": datos_torneo["modalidad"]}
-            res_torneo = supabase.table("torneos").insert(data_torneo).execute()
+            res_torneo = sb.table("torneos").insert(data_torneo).execute()
             torneo_id = res_torneo.data[0]['id']
             poomsaes_a_insertar = []
             for p in lista_poomsaes:
                 poomsaes_a_insertar.append({"user_id": user_id, "torneo_id": torneo_id, "ronda": p["ronda"], "nombre_poomsae": p["nombre"], "mi_nota_tecnica": p["mi_tec"], "mi_nota_presentacion": p["mi_pres"], "mi_nota_final": p["mi_total"], "nombre_rival": p["rival_nombre"], "rival_nota_tecnica": p["rival_tec"], "rival_nota_presentacion": p["rival_pres"], "rival_nota_final": p["rival_total"], "resultado": p["resultado"], "comentarios": p["comentarios"]})
-            supabase.table("registros_poomsae").insert(poomsaes_a_insertar).execute()
+            sb.table("registros_poomsae").insert(poomsaes_a_insertar).execute()
             return True
     except: return False
 
@@ -212,7 +221,7 @@ def guardar_evento_agenda(nombre, inicio, fin, estatus, comentarios, asistencia=
                 "comentarios": comentarios,
                 "asistencia": asistencia
             }
-            supabase.table("agenda").insert(data).execute()
+            get_supabase().table("agenda").insert(data).execute()
             return True
     except Exception as e:
         st.error(f"Error guardando agenda: {e}")
@@ -424,7 +433,7 @@ def mostrar_calendario():
 
     # Obtener eventos de la base de datos
     try: 
-        eventos_db = supabase.table("agenda").select("*").eq("user_id", st.session_state.user.id).execute().data
+        eventos_db = get_supabase().table("agenda").select("*").eq("user_id", st.session_state.user.id).execute().data
     except: 
         eventos_db = []
 
@@ -505,12 +514,13 @@ def mostrar_calendario():
 
         if st.button("💾 Guardar Cambios en la Lista", type="primary"):
             with st.spinner("Sincronizando agenda..."):
+                sb = get_supabase()
                 ids_originales = [row['id'] for row in eventos_db]
                 ids_finales = []
                 for index, row in edited_df.iterrows():
                     if pd.notna(row.get('id')):
                         ids_finales.append(row['id'])
-                        supabase.table("agenda").update({
+                        sb.table("agenda").update({
                             "nombre": row['nombre'], 
                             "fecha_inicio": str(row['fecha_inicio']), 
                             "fecha_fin": str(row['fecha_fin']), 
@@ -522,7 +532,7 @@ def mostrar_calendario():
                         guardar_evento_agenda(row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estatus'], row['comentarios'], row['asistencia'])
                 
                 for old_id in ids_originales:
-                    if old_id not in ids_finales: supabase.table("agenda").delete().eq("id", old_id).execute()
+                    if old_id not in ids_finales: sb.table("agenda").delete().eq("id", old_id).execute()
             
             st.success("Lista de eventos actualizada correctamente.")
             time.sleep(1)
@@ -537,7 +547,7 @@ def mostrar_historial_editor():
     user_id = st.session_state.user.id
     
     try:
-        torneos_resp = supabase.table("torneos").select("*").eq("user_id", user_id).order("fecha_torneo", desc=True).execute()
+        torneos_resp = get_supabase().table("torneos").select("*").eq("user_id", user_id).order("fecha_torneo", desc=True).execute()
         df_torneos = pd.DataFrame(torneos_resp.data)
         
         if df_torneos.empty:
@@ -568,8 +578,9 @@ def mostrar_historial_editor():
             
             if st.button("💾 Guardar Cambios de Torneos (Nombres/Fechas)", type="primary"):
                 with st.spinner("Actualizando metadata de torneos..."):
+                    sb = get_supabase()
                     for idx, row in edited_torneos.iterrows():
-                        supabase.table("torneos").update({
+                        sb.table("torneos").update({
                             "nombre_torneo": row['nombre_torneo'], "fecha_torneo": str(row['fecha_torneo']),
                             "categoria": row['categoria'], "modalidad": row['modalidad']
                         }).eq("id", row['id']).execute()
@@ -581,7 +592,7 @@ def mostrar_historial_editor():
             
             # --- PROMEDIOS FINALES (TODOS) ---
             st.subheader("📊 Promedios Finales por Ronda (Todos los Torneos)")
-            registros_resp = supabase.table("registros_poomsae").select("*, torneos(nombre_torneo)").eq("user_id", user_id).execute()
+            registros_resp = get_supabase().table("registros_poomsae").select("*, torneos(nombre_torneo)").eq("user_id", user_id).execute()
             df_reg_all = pd.DataFrame(registros_resp.data)
             
             if not df_reg_all.empty:
@@ -623,6 +634,7 @@ def mostrar_historial_editor():
                 
                 if st.button("💾 Guardar Cambios en Poomsaes", type="primary"):
                     with st.spinner("Guardando poomsaes..."):
+                        sb = get_supabase()
                         for index, row in edited_regs.iterrows():
                             mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
                             riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
@@ -635,7 +647,7 @@ def mostrar_historial_editor():
                                 "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
                                 "comentarios": row.get('comentarios', '')
                             }
-                            supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
+                            sb.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
                         st.success("✅ Poomsaes actualizados.")
                         time.sleep(1)
                         st.rerun()
@@ -663,7 +675,7 @@ def mostrar_historial_editor():
             col_btn_guardar, col_btn_borrar = st.columns(2)
             with col_btn_guardar:
                 if st.button("💾 Guardar Datos del Torneo", use_container_width=True):
-                    supabase.table("torneos").update({
+                    get_supabase().table("torneos").update({
                         "nombre_torneo": t_nombre, "fecha_torneo": str(t_fecha), "categoria": t_cat, "modalidad": t_mod
                     }).eq("id", torneo_id_selec).execute()
                     st.success("Info del torneo actualizada.")
@@ -675,15 +687,16 @@ def mostrar_historial_editor():
                 if eliminar_check:
                     if st.button("🗑️ Eliminar Torneo Definitivamente", type="primary", use_container_width=True):
                         with st.spinner("Eliminando torneo y sus registros..."):
-                            supabase.table("registros_poomsae").delete().eq("torneo_id", torneo_id_selec).execute()
-                            supabase.table("torneos").delete().eq("id", torneo_id_selec).execute()
+                            sb = get_supabase()
+                            sb.table("registros_poomsae").delete().eq("torneo_id", torneo_id_selec).execute()
+                            sb.table("torneos").delete().eq("id", torneo_id_selec).execute()
                         st.success("Torneo eliminado correctamente.")
                         time.sleep(1)
                         st.rerun()
 
             st.divider()
             
-            registros_resp = supabase.table("registros_poomsae").select("*").eq("torneo_id", torneo_id_selec).execute()
+            registros_resp = get_supabase().table("registros_poomsae").select("*").eq("torneo_id", torneo_id_selec).execute()
             df_registros = pd.DataFrame(registros_resp.data)
             
             if not df_registros.empty:
@@ -725,6 +738,7 @@ def mostrar_historial_editor():
                 
                 if st.button("💾 Guardar Notas", type="primary"):
                     with st.spinner("Guardando cambios..."):
+                        sb = get_supabase()
                         for index, row in edited_df.iterrows():
                             mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
                             riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
@@ -737,7 +751,7 @@ def mostrar_historial_editor():
                                 "rival_nota_tecnica": row['rival_nota_tecnica'], "rival_nota_presentacion": row['rival_nota_presentacion'], "rival_nota_final": riv_total, "resultado": res,
                                 "comentarios": row.get('comentarios', '')
                             }
-                            supabase.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
+                            sb.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
                         st.success("✅ Datos actualizados correctamente.")
                         time.sleep(1)
                         st.rerun()
@@ -748,7 +762,7 @@ def mostrar_historial_editor():
 def mostrar_dashboard():
     user_id = st.session_state.user.id
     try:
-        data = supabase.table("registros_poomsae").select("*, torneos(nombre_torneo, fecha_torneo)").eq("user_id", user_id).execute()
+        data = get_supabase().table("registros_poomsae").select("*, torneos(nombre_torneo, fecha_torneo)").eq("user_id", user_id).execute()
         df = pd.DataFrame(data.data)
         
         if not df.empty:
@@ -914,7 +928,7 @@ def mostrar_admin_users():
     st.info("Listado completo de atletas registrados en la base de datos.")
     try:
         with st.spinner("Cargando base de datos..."):
-            resp = supabase.table("perfiles").select("*").execute()
+            resp = get_supabase().table("perfiles").select("*").execute()
             df_users = pd.DataFrame(resp.data)
             if not df_users.empty:
                 cols = ['nombre_completo', 'email', 'grado', 'categoria', 'edad', 'genero', 'created_at']
