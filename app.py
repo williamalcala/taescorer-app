@@ -90,6 +90,23 @@ LUGARES_COMPETICION = [
     "Participación"
 ]
 
+# --- HELPERS: lógica centralizada del campo 'resultado' ---
+def construir_resultado(lugar):
+    """Construye el string de resultado a partir del lugar obtenido.
+    Solo el 1er lugar se considera Ganador; todo lo demás es Perdedor."""
+    if lugar == "1er Lugar":
+        return f"Ganador - {lugar}"
+    return f"Perdedor - {lugar}"
+
+def extraer_lugar(resultado):
+    """Extrae el lugar desde un string de resultado tipo 'Ganador - 1er Lugar'.
+    Soporta formato antiguo (sin lugar explícito) como fallback."""
+    res_str = str(resultado)
+    if " - " in res_str:
+        return res_str.split(" - ")[1]
+    # Fallback formato antiguo
+    return "1er Lugar" if "Ganador" in res_str else "Participación"
+
 # --- 4. CSS MAESTRO ---
 st.markdown(f"""
 <style>
@@ -403,11 +420,8 @@ def mostrar_formulario_registro():
             total_riv_2 = rt2 + rp2
             c_r3.metric("Final P2 (Rival)", f"{total_riv_2:.2f}")
 
-        # 3. Lógica de Victoria estricta: Solo 1er Lugar = Ganador.
-        if lugar_obtenido == "1er Lugar":
-            res = f"Ganador - {lugar_obtenido}"
-        else:
-            res = f"Perdedor - {lugar_obtenido}"
+        # Lógica de Victoria estricta: Solo 1er Lugar = Ganador.
+        res = construir_resultado(lugar_obtenido)
             
         datos_rondas.append({"ronda": f"{tr} (P1)", "nombre": np1, "mi_tec": mt1, "mi_pres": mp1, "mi_total": total_yo_1, "rival_nombre": nr, "rival_tec": rt1, "rival_pres": rp1, "rival_total": total_riv_1, "resultado": res, "comentarios": comentarios})
         datos_rondas.append({"ronda": f"{tr} (P2)", "nombre": np2, "mi_tec": mt2, "mi_pres": mp2, "mi_total": total_yo_2, "rival_nombre": nr, "rival_tec": rt2, "rival_pres": rp2, "rival_total": total_riv_2, "resultado": res, "comentarios": comentarios})
@@ -636,7 +650,7 @@ def mostrar_historial_editor():
             st.subheader("✏️ Editar Todos los Poomsaes Individuales")
             if not df_reg_all.empty:
                 # Extraer "Lugar" del resultado para poder editarlo fácilmente
-                df_reg_all['Lugar'] = df_reg_all['resultado'].apply(lambda x: str(x).split(" - ")[1] if " - " in str(x) else ("1er Lugar" if "Ganador" in str(x) else "Participación"))
+                df_reg_all['Lugar'] = df_reg_all['resultado'].apply(extraer_lugar)
                 
                 col_config_reg = {
                     "id": None, "user_id": None, "torneo_id": None, "created_at": None, "torneos": None, "Torneo": "Torneo",
@@ -658,7 +672,7 @@ def mostrar_historial_editor():
                             mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
                             riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
                             lugar = row.get('Lugar', 'Participación')
-                            res = f"Ganador - {lugar}" if lugar == "1er Lugar" else f"Perdedor - {lugar}"
+                            res = construir_resultado(lugar)
                             
                             update_data = {
                                 "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
@@ -668,6 +682,28 @@ def mostrar_historial_editor():
                             }
                             sb.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
                         st.toast("✅ Poomsaes actualizados.", icon="💾")
+                        st.rerun()
+
+            # --- BORRADO DESDE VER TODOS ---
+            st.divider()
+            st.subheader("🗑️ Eliminar un Torneo")
+            st.caption("Selecciona un torneo para eliminarlo de forma definitiva junto con todos sus poomsaes registrados.")
+            
+            opciones_borrar = ["— Selecciona un torneo —"] + [f"{row['nombre_torneo']} ({row['fecha_torneo']})" for idx, row in df_torneos.iterrows()]
+            mapa_borrar = {f"{row['nombre_torneo']} ({row['fecha_torneo']})": row['id'] for idx, row in df_torneos.iterrows()}
+            torneo_a_borrar = st.selectbox("Torneo a eliminar", opciones_borrar, key="select_borrar_vertodos")
+            
+            if torneo_a_borrar != "— Selecciona un torneo —":
+                st.warning(f"⚠️ Vas a eliminar **{torneo_a_borrar}** y todos sus registros de poomsaes. Esta acción no se puede deshacer.")
+                confirmar = st.checkbox("Confirmo que quiero eliminar este torneo", key="confirmar_borrar_vertodos")
+                if confirmar:
+                    if st.button("🗑️ Eliminar Definitivamente", type="primary", key="btn_borrar_vertodos"):
+                        torneo_id_borrar = mapa_borrar[torneo_a_borrar]
+                        with st.spinner("Eliminando torneo y sus registros..."):
+                            sb = get_supabase()
+                            sb.table("registros_poomsae").delete().eq("torneo_id", torneo_id_borrar).execute()
+                            sb.table("torneos").delete().eq("id", torneo_id_borrar).execute()
+                        st.toast(f"Torneo eliminado correctamente.", icon="🗑️")
                         st.rerun()
 
         else:
@@ -736,7 +772,7 @@ def mostrar_historial_editor():
 
             st.subheader("✏️ Editar Poomsaes Individuales")
             if not df_registros.empty:
-                df_registros['Lugar'] = df_registros['resultado'].apply(lambda x: str(x).split(" - ")[1] if " - " in str(x) else ("1er Lugar" if "Ganador" in str(x) else "Participación"))
+                df_registros['Lugar'] = df_registros['resultado'].apply(extraer_lugar)
                 
                 col_config = {
                     "id": None, "user_id": None, "torneo_id": None, "created_at": None,
@@ -759,7 +795,7 @@ def mostrar_historial_editor():
                             mi_total = round(row['mi_nota_tecnica'] + row['mi_nota_presentacion'], 2)
                             riv_total = round(row['rival_nota_tecnica'] + row['rival_nota_presentacion'], 2)
                             lugar = row.get('Lugar', 'Participación')
-                            res = f"Ganador - {lugar}" if lugar == "1er Lugar" else f"Perdedor - {lugar}"
+                            res = construir_resultado(lugar)
                             
                             update_data = {
                                 "nombre_poomsae": row['nombre_poomsae'], "ronda": row['ronda'], "nombre_rival": row['nombre_rival'],
