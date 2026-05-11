@@ -892,10 +892,16 @@ def mostrar_dashboard():
             with c_d1:
                 opcion_tiempo_det = st.selectbox("📅 Fechas Detalle", ["Histórico Completo", "Este Año", "Últimos 6 Meses", "Último Mes", "Seleccionar Rango"], key="det_time")
                 start_date_d = df['Fecha del Torneo'].min()
+                end_date_d = df['Fecha del Torneo'].max()
                 if opcion_tiempo_det == "Este Año": start_date_d = pd.Timestamp(f"{hoy.year}-01-01")
                 elif opcion_tiempo_det == "Últimos 6 Meses": start_date_d = hoy - pd.DateOffset(months=6)
                 elif opcion_tiempo_det == "Último Mes": start_date_d = hoy - pd.DateOffset(months=1)
-                df_det = df[df['Fecha del Torneo'] >= start_date_d]
+                elif opcion_tiempo_det == "Seleccionar Rango":
+                    fechas_input_d = st.date_input("Elige fechas", [], key="det_date_input")
+                    if len(fechas_input_d) == 2:
+                        start_date_d = pd.Timestamp(fechas_input_d[0])
+                        end_date_d = pd.Timestamp(fechas_input_d[1])
+                df_det = df[(df['Fecha del Torneo'] >= start_date_d) & (df['Fecha del Torneo'] <= end_date_d)]
 
             with c_d2:
                 lista_poom_det = ["Todos"] + list(df['Poomsae'].unique())
