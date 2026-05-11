@@ -137,7 +137,6 @@ def login(email, password):
             st.session_state.access_token = response.session.access_token
             st.session_state.refresh_token = response.session.refresh_token
             cargar_perfil()
-            time.sleep(0.5)
             st.rerun()
     except Exception as e: 
         logger.error(f"Login fallido para {email}: {e}")
@@ -151,8 +150,7 @@ def sign_up(email, password, full_name):
             if response.session:
                 st.session_state.access_token = response.session.access_token
                 st.session_state.refresh_token = response.session.refresh_token
-            st.success("Cuenta creada exitosamente.")
-            time.sleep(1)
+            st.toast("✅ Cuenta creada exitosamente.", icon="🎉")
             st.rerun()
     except Exception as e: 
         logger.error(f"Sign-up fallido para {email}: {e}")
@@ -194,9 +192,8 @@ def actualizar_perfil(datos, archivo_foto_bytes):
             datos_actualizados = {"id": user_id, **datos}
             if foto_url: datos_actualizados["foto_url"] = foto_url
             get_supabase().table("perfiles").upsert(datos_actualizados).execute()
-            st.success("✅ Perfil guardado correctamente.")
             cargar_perfil()
-            time.sleep(1)
+            st.toast("✅ Perfil guardado correctamente.", icon="💾")
             st.rerun()
     except Exception as e: 
         logger.error(f"Error guardando perfil para user {user_id}: {e}")
@@ -417,12 +414,11 @@ def mostrar_formulario_registro():
         if nom: 
             exito = guardar_torneo({"nombre": nom, "fecha": fec, "categoria": cat, "modalidad": mod}, datos_rondas)
             if exito:
-                st.success("¡Torneo guardado exitosamente!")
                 keys_a_borrar = ["t_nombre", "t_fecha", "t_cat", "t_mod", "t_rondas"]
                 for key in list(st.session_state.keys()):
                     if key in keys_a_borrar or any(x in key for x in ["np1_", "mt1_", "mp1_", "rt1_", "rp1_", "np2_", "mt2_", "mp2_", "rt2_", "rp2_", "tr_", "nr_", "sel_riv_", "text_riv_", "comm_", "lugar_"]):
                         del st.session_state[key]
-                time.sleep(1.5)
+                st.toast("¡Torneo guardado exitosamente!", icon="🏆")
                 st.rerun()
         else: st.warning("⚠️ Debes escribir el nombre del torneo.")
 
@@ -446,8 +442,7 @@ def mostrar_calendario():
             if evt_nombre:
                 # Al agendar desde aquí, la asistencia por defecto será "⏳ Pendiente"
                 if guardar_evento_agenda(evt_nombre, evt_inicio, evt_fin, evt_estatus, evt_coment):
-                    st.success("Evento agregado exitosamente.")
-                    time.sleep(1)
+                    st.toast("Evento agregado exitosamente.", icon="📅")
                     st.rerun()
             else: st.warning("Por favor, ingresa el nombre del evento.")
 
@@ -557,8 +552,7 @@ def mostrar_calendario():
                 for old_id in ids_originales:
                     if old_id not in ids_finales: sb.table("agenda").delete().eq("id", old_id).execute()
             
-            st.success("Lista de eventos actualizada correctamente.")
-            time.sleep(1)
+            st.toast("Lista de eventos actualizada correctamente.", icon="📅")
             st.rerun()
     else: 
         st.info("Aún no tienes eventos registrados en tu agenda.")
@@ -607,8 +601,7 @@ def mostrar_historial_editor():
                             "nombre_torneo": row['nombre_torneo'], "fecha_torneo": str(row['fecha_torneo']),
                             "categoria": row['categoria'], "modalidad": row['modalidad']
                         }).eq("id", row['id']).execute()
-                    st.success("✅ Torneos actualizados.")
-                    time.sleep(1)
+                    st.toast("✅ Torneos actualizados.", icon="💾")
                     st.rerun()
 
             st.divider()
@@ -671,8 +664,7 @@ def mostrar_historial_editor():
                                 "comentarios": row.get('comentarios', '')
                             }
                             sb.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
-                        st.success("✅ Poomsaes actualizados.")
-                        time.sleep(1)
+                        st.toast("✅ Poomsaes actualizados.", icon="💾")
                         st.rerun()
 
         else:
@@ -701,8 +693,7 @@ def mostrar_historial_editor():
                     get_supabase().table("torneos").update({
                         "nombre_torneo": t_nombre, "fecha_torneo": str(t_fecha), "categoria": t_cat, "modalidad": t_mod
                     }).eq("id", torneo_id_selec).execute()
-                    st.success("Info del torneo actualizada.")
-                    time.sleep(1)
+                    st.toast("Info del torneo actualizada.", icon="💾")
                     st.rerun()
 
             with col_btn_borrar:
@@ -713,8 +704,7 @@ def mostrar_historial_editor():
                             sb = get_supabase()
                             sb.table("registros_poomsae").delete().eq("torneo_id", torneo_id_selec).execute()
                             sb.table("torneos").delete().eq("id", torneo_id_selec).execute()
-                        st.success("Torneo eliminado correctamente.")
-                        time.sleep(1)
+                        st.toast("Torneo eliminado correctamente.", icon="🗑️")
                         st.rerun()
 
             st.divider()
@@ -775,8 +765,7 @@ def mostrar_historial_editor():
                                 "comentarios": row.get('comentarios', '')
                             }
                             sb.table("registros_poomsae").update(update_data).eq("id", row['id']).execute()
-                        st.success("✅ Datos actualizados correctamente.")
-                        time.sleep(1)
+                        st.toast("✅ Datos actualizados correctamente.", icon="💾")
                         st.rerun()
 
     except Exception as e:
