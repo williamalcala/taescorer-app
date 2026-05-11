@@ -181,14 +181,28 @@ def logout():
     st.query_params.clear()
     st.rerun()
 
-def cargar_perfil():
-    if st.session_state.user:
-        try:
-            data = get_supabase().table("perfiles").select("*").eq("id", st.session_state.user.id).execute()
-            if data.data: st.session_state.perfil = data.data[0]
-            else: st.session_state.perfil = {}
-        except Exception as e:
-            logger.error(f"Error cargando perfil para user {st.session_state.user.id}: {e}")
+def cargar_perfil(forzar=False):
+    """Carga el perfil del usuario desde Supabase.
+    Usa caché en st.session_state para evitar queries repetidas en cada rerun.
+    El caché expira en 5 minutos. Pasa forzar=True para recargar inmediatamente."""
+    if not st.session_state.user:
+        return
+    
+    # Caché: si fue cargado hace menos de 5 minutos, no recargar
+    CACHE_DURATION_SEG = 300  # 5 minutos
+    ahora = time.time()
+    cargado_en = st.session_state.get('perfil_cached_at', 0)
+    
+    if not forzar and st.session_state.perfil and (ahora - cargado_en) < CACHE_DURATION_SEG:
+        return  # caché válido, no hacer nada
+    
+    try:
+        data = get_supabase().table("perfiles").select("*").eq("id", st.session_state.user.id).execute()
+        if data.data: st.session_state.perfil = data.data[0]
+        else: st.session_state.perfil = {}
+        st.session_state.perfil_cached_at = ahora
+    except Exception as e:
+        logger.error(f"Error cargando perfil para user {st.session_state.user.id}: {e}")
 
 def actualizar_perfil(datos, archivo_foto_bytes):
     user_id = st.session_state.user.id
@@ -209,7 +223,7 @@ def actualizar_perfil(datos, archivo_foto_bytes):
             datos_actualizados = {"id": user_id, **datos}
             if foto_url: datos_actualizados["foto_url"] = foto_url
             get_supabase().table("perfiles").upsert(datos_actualizados).execute()
-            cargar_perfil()
+            cargar_perfil(forzar=True)
             st.toast("✅ Perfil guardado correctamente.", icon="💾")
             st.rerun()
     except Exception as e: 
