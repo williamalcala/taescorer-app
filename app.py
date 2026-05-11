@@ -315,6 +315,9 @@ def mostrar_perfil():
             img.thumbnail((500,500))
             crop = st_cropper(img, aspect_ratio=(1,1), box_color='#FF0000', key="crop")
             buf = BytesIO()
+            # Convertir a RGB para soportar PNG con transparencia (JPEG no soporta canal alfa)
+            if crop.mode in ("RGBA", "LA", "P"):
+                crop = crop.convert("RGB")
             crop.save(buf, format="JPEG")
             img_bytes = buf.getvalue()
     with c2:
