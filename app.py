@@ -277,6 +277,11 @@ def guardar_evento_agenda(nombre, inicio, fin, estatus, comentarios, asistencia=
         return False
 
 def calcular_medallas(df_completo):
+    """Cuenta medallas por torneo según el lugar obtenido en el resultado.
+    - Oro: 1er Lugar
+    - Plata: 2do Lugar
+    - Bronce: 3er o 4to Lugar
+    - Participación: cualquier otro lugar (5to en adelante o 'Participación')"""
     conteo = {"Oro": 0, "Plata": 0, "Bronce": 0, "Participacion": 0}
     if df_completo.empty: return conteo
     
@@ -284,49 +289,21 @@ def calcular_medallas(df_completo):
     for t_id in torneos_ids:
         df_t = df_completo[df_completo['torneo_id'] == t_id]
         resultados = df_t['resultado'].astype(str).tolist()
-        rondas = df_t['ronda'].astype(str).tolist()
         
-        # Nueva Lógica de Medallas (Basada en el Lugar explícito seleccionado)
         if any('1er Lugar' in r for r in resultados):
             conteo["Oro"] += 1
         elif any('2do Lugar' in r for r in resultados):
             conteo["Plata"] += 1
         elif any('3er Lugar' in r for r in resultados) or any('4to Lugar' in r for r in resultados):
             conteo["Bronce"] += 1
-        elif any('Lugar' in r for r in resultados) or any('Participación' in r for r in resultados):
-            conteo["Participacion"] += 1
         else:
-            # Lógica antigua de rescate (para torneos registrados antes de esta actualización)
-            ronda_max = ""
-            if any("Final" in r for r in rondas): ronda_max = "Final"
-            elif any("Semi" in r for r in rondas): ronda_max = "Semi"
-            else: ronda_max = "Otra"
-
-            df_ronda_final = df_t[df_t['ronda'].str.contains(ronda_max)]
-            es_ganador = "Ganador" in df_ronda_final['resultado'].values
-            if ronda_max == "Final":
-                if es_ganador: conteo["Oro"] += 1
-                else: conteo["Plata"] += 1
-            elif ronda_max == "Semi":
-                if es_ganador: conteo["Plata"] += 1 
-                else: conteo["Bronce"] += 1
-            else:
-                conteo["Participacion"] += 1
+            conteo["Participacion"] += 1
                 
     return conteo
 
 def determinar_lugar(row):
-    # Extraer el lugar de la nueva columna resultado si existe
-    res_raw = str(row.get('Resultado_Raw', ''))
-    if " - " in res_raw:
-        return res_raw.split(" - ")[1]
-        
-    # Lógica antigua de rescate
-    ronda = str(row.get('ronda', ''))
-    if "Final" in ronda: return "🥇 1er Lugar" if res_raw == "Ganador" else "🥈 2do Lugar"
-    elif "Semi" in ronda: return "🥈 Plata" if res_raw == "Ganador" else "🥉 3er Lugar"
-    elif "4tos" in ronda: return "5to - 8vo Lugar"
-    else: return "Participación"
+    """Extrae el lugar obtenido desde el campo Resultado_Raw del row."""
+    return extraer_lugar(row.get('Resultado_Raw', ''))
 
 # ==========================================
 # PANTALLAS VISUALES
